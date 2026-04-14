@@ -20,6 +20,13 @@ export default function LoginPage() {
     router.refresh()
   }
 
+  const inputStyle = {
+    width: '100%', padding: '10px 14px', borderRadius: '8px',
+    border: '1px solid #DDD6FE', fontSize: '14px',
+    boxSizing: 'border-box' as const, outline: 'none',
+    color: '#1C1917', background: '#fff'
+  }
+
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F0EFFE' }}>
       <div style={{ width: '100%', maxWidth: '420px', padding: '0 16px' }}>
@@ -28,18 +35,16 @@ export default function LoginPage() {
           <p style={{ color: '#6B7280', marginTop: '8px', fontSize: '14px' }}>Plataforma de gestión escolar · México y LATAM</p>
         </div>
         <div style={{ background: '#fff', borderRadius: '16px', padding: '32px', border: '1px solid #DDD6FE' }}>
-          <h2 style={{ marginBottom: '24px', fontSize: '20px', fontWeight: 600 }}>Iniciar sesión</h2>
+          <h2 style={{ marginBottom: '24px', fontSize: '20px', fontWeight: 600, color: '#1C1917' }}>Iniciar sesión</h2>
           <form onSubmit={handleSubmit}>
             {error && <p style={{ color: '#DC2626', background: '#FEE2E2', padding: '8px 12px', borderRadius: '8px', marginBottom: '16px', fontSize: '14px' }}>{error}</p>}
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '14px', marginBottom: '6px', fontWeight: 500 }}>Correo electrónico</label>
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="director@colegio.edu.mx"
-                style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #DDD6FE', fontSize: '14px', boxSizing: 'border-box', outline: 'none' }} />
+              <label style={{ display: 'block', fontSize: '14px', marginBottom: '6px', fontWeight: 500, color: '#1C1917' }}>Correo electrónico</label>
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="director@colegio.edu.mx" style={inputStyle} />
             </div>
             <div style={{ marginBottom: '24px' }}>
-              <label style={{ display: 'block', fontSize: '14px', marginBottom: '6px', fontWeight: 500 }}>Contraseña</label>
-              <input type="password" value={password} onChange={e => setPassword(e.target.value)} required placeholder="••••••••"
-                style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #DDD6FE', fontSize: '14px', boxSizing: 'border-box', outline: 'none' }} />
+              <label style={{ display: 'block', fontSize: '14px', marginBottom: '6px', fontWeight: 500, color: '#1C1917' }}>Contraseña</label>
+              <input type="password" value={password} onChange={e => setPassword(e.target.value)} required placeholder="••••••••" style={inputStyle} />
             </div>
             <button type="submit" disabled={loading}
               style={{ width: '100%', padding: '12px', background: '#6D4AE8', color: '#fff', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}>
