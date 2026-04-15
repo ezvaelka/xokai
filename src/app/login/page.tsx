@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Loader2, Mail, Lock, Sparkles, AlertCircle, CheckCircle2 } from 'lucide-react'
 import { useForm } from 'react-hook-form'
@@ -26,12 +26,22 @@ const magicSchema = z.object({
 type PasswordForm = z.infer<typeof passwordSchema>
 type MagicForm    = z.infer<typeof magicSchema>
 
+// ─── Manejador de errores de URL (requiere Suspense) ─────────────────────────
+
+function UrlErrorHandler() {
+  const searchParams = useSearchParams()
+  useEffect(() => {
+    if (searchParams.get('error') === 'link_invalido') {
+      toast.error('El enlace ha expirado o es inválido. Solicita uno nuevo.')
+    }
+  }, [searchParams])
+  return null
+}
+
 // ─── Componente ──────────────────────────────────────────────────────────────
 
 export default function LoginPage() {
-  const router       = useRouter()
-  const searchParams = useSearchParams()
-  const errorParam   = searchParams.get('error')
+  const router = useRouter()
 
   const [tab, setTab]           = useState<'password' | 'magic'>('password')
   const [magicSent, setMagicSent] = useState(false)
@@ -45,13 +55,6 @@ export default function LoginPage() {
     resolver: zodResolver(magicSchema),
     defaultValues: { email: '' },
   })
-
-  // Mostrar error de URL (ej: link expirado)
-  useEffect(() => {
-    if (errorParam === 'link_invalido') {
-      toast.error('El enlace ha expirado o es inválido. Solicita uno nuevo.')
-    }
-  }, [errorParam])
 
   // ─── Handlers ──────────────────────────────────────────────────────────────
 
@@ -78,6 +81,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-xk-bg px-4 py-12">
+      <Suspense fallback={null}><UrlErrorHandler /></Suspense>
       <div className="w-full max-w-md">
 
         {/* Logo */}
