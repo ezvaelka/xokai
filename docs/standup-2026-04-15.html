@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Xokai — CEO Report · 15 Abr 2026</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: #F0EFFE;
+      color: #1C1917;
+      padding: 40px 24px 80px;
+      min-height: 100vh;
+    }
+
+    .container { max-width: 860px; margin: 0 auto; }
+
+    /* ── Header ── */
+    .header {
+      background: linear-gradient(135deg, #6D4AE8 0%, #9B72F5 100%);
+      border-radius: 20px;
+      padding: 36px 40px;
+      color: #fff;
+      margin-bottom: 32px;
+      position: relative;
+      overflow: hidden;
+    }
+    .header::before {
+      content: '';
+      position: absolute;
+      top: -40px; right: -40px;
+      width: 200px; height: 200px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 50%;
+    }
+    .header-tag {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.7);
+      margin-bottom: 10px;
+    }
+    .header h1 {
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      line-height: 1.1;
+    }
+    .header-sub {
+      margin-top: 8px;
+      font-size: 14px;
+      color: rgba(255,255,255,0.75);
+    }
+    .header-meta {
+      margin-top: 20px;
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+    .meta-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.8);
+      background: rgba(255,255,255,0.12);
+      padding: 4px 12px;
+      border-radius: 20px;
+    }
+
+    /* ── Section ── */
+    .section {
+      background: #fff;
+      border: 1px solid #EDE9FE;
+      border-radius: 18px;
+      padding: 28px 32px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(109,74,232,0.06);
+    }
+    .section-title {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      color: #6D4AE8;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #F5F3FF;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-icon {
+      width: 28px; height: 28px;
+      background: #EDE9FE;
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px;
+    }
+
+    /* ── KPI Grid ── */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+    .kpi {
+      background: #F8F7FF;
+      border: 1px solid #EDE9FE;
+      border-radius: 14px;
+      padding: 18px 20px;
+    }
+    .kpi-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #A8A29E;
+      margin-bottom: 8px;
+    }
+    .kpi-value {
+      font-size: 30px;
+      font-weight: 800;
+      color: #6D4AE8;
+      letter-spacing: -0.5px;
+      line-height: 1;
+    }
+    .kpi-desc {
+      font-size: 11px;
+      color: #78716C;
+      margin-top: 4px;
+    }
+
+    /* ── Commit list ── */
+    .commit-list { display: flex; flex-direction: column; gap: 12px; }
+    .commit {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      padding: 14px 16px;
+      background: #F8F7FF;
+      border-radius: 12px;
+      border: 1px solid #EDE9FE;
+    }
+    .commit-badge {
+      flex-shrink: 0;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-top: 1px;
+    }
+    .badge-feat   { background: #DCFCE7; color: #15803D; }
+    .badge-fix    { background: #FEF3C7; color: #B45309; }
+    .badge-docs   { background: #DBEAFE; color: #1D4ED8; }
+    .badge-infra  { background: #EDE9FE; color: #6D4AE8; }
+    .badge-merge  { background: #F1F5F9; color: #64748B; }
+
+    .commit-content {}
+    .commit-msg {
+      font-size: 14px;
+      font-weight: 600;
+      color: #1C1917;
+      line-height: 1.4;
+    }
+    .commit-meta {
+      font-size: 11px;
+      color: #A8A29E;
+      margin-top: 4px;
+    }
+    .commit-author {
+      font-weight: 600;
+      color: #6D4AE8;
+    }
+
+    /* ── Module status ── */
+    .module-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .module {
+      padding: 14px 16px;
+      border-radius: 12px;
+      border: 1px solid;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .module-done  { background: #F0FDF4; border-color: #BBF7D0; }
+    .module-wip   { background: #FFF7ED; border-color: #FED7AA; }
+    .module-todo  { background: #F8F7FF; border-color: #EDE9FE; }
+
+    .module-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .dot-done { background: #16A34A; }
+    .dot-wip  { background: #EA580C; }
+    .dot-todo { background: #A8A29E; }
+
+    .module-name { font-size: 13px; font-weight: 600; color: #1C1917; }
+    .module-status { font-size: 11px; color: #78716C; margin-top: 2px; }
+
+    /* ── Risks ── */
+    .risk-list { display: flex; flex-direction: column; gap: 10px; }
+    .risk {
+      padding: 12px 16px;
+      border-radius: 10px;
+      border-left: 3px solid;
+      background: #FFFBEB;
+      border-color: #F59E0B;
+      font-size: 13px;
+      color: #44403C;
+      line-height: 1.5;
+    }
+    .risk strong { color: #92400E; }
+
+    /* ── Next steps ── */
+    .steps-list { display: flex; flex-direction: column; gap: 10px; }
+    .step {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      font-size: 13px;
+      color: #44403C;
+      line-height: 1.5;
+    }
+    .step-num {
+      width: 24px; height: 24px;
+      background: #6D4AE8;
+      color: #fff;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    /* ── Footer ── */
+    .footer {
+      text-align: center;
+      margin-top: 40px;
+      font-size: 11px;
+      color: #A8A29E;
+    }
+
+    /* ── Highlight box ── */
+    .highlight {
+      background: linear-gradient(135deg, #EDE9FE 0%, #F5F3FF 100%);
+      border: 1px solid #DDD6FE;
+      border-radius: 14px;
+      padding: 18px 20px;
+      font-size: 13px;
+      color: #44403C;
+      line-height: 1.6;
+    }
+    .highlight strong { color: #6D4AE8; }
+
+    @media (max-width: 600px) {
+      .kpi-grid { grid-template-columns: 1fr 1fr; }
+      .module-grid { grid-template-columns: 1fr; }
+      .header { padding: 24px; }
+      .section { padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-tag">Xokai · Daily CEO Report</div>
+    <h1>Standup Summary</h1>
+    <div class="header-sub">Miercoles 15 de abril de 2026 · Generado por AI Agile Coach</div>
+    <div class="header-meta">
+      <div class="meta-item">📅 Sprint: C0 — Infraestructura Base</div>
+      <div class="meta-item">🏫 Piloto: Habitat Learning Community</div>
+      <div class="meta-item">🔖 v0.1.0</div>
+    </div>
+  </div>
+
+  <!-- KPIs del dia -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-icon">📊</div>
+      Metricas del Sprint C0
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi">
+        <div class="kpi-label">Commits ayer</div>
+        <div class="kpi-value">8</div>
+        <div class="kpi-desc">14 de abril · todos en main</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">PRs mergeados</div>
+        <div class="kpi-value">2</div>
+        <div class="kpi-desc">Infraestructura + Contexto IA</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Lineas de codigo</div>
+        <div class="kpi-value">+6.1k</div>
+        <div class="kpi-desc">Net insertions ayer</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Tablas en DB</div>
+        <div class="kpi-value">8+</div>
+        <div class="kpi-desc">Schema completo con RLS</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Commits hoy</div>
+        <div class="kpi-value">0</div>
+        <div class="kpi-desc">15 abr · dia en curso</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Modulos listos</div>
+        <div class="kpi-value">2/6</div>
+        <div class="kpi-desc">Login + Dashboard web</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lo que se hizo ayer -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-icon">✅</div>
+      Que se hizo ayer — 14 de abril
+    </div>
+    <div class="commit-list">
+
+      <div class="commit">
+        <span class="commit-badge badge-feat">feat</span>
+        <div class="commit-content">
+          <div class="commit-msg">Login page completa — Supabase Auth + middleware de proteccion de rutas</div>
+          <div class="commit-meta">Autor: <span class="commit-author">Ez</span> · Email/password · redirect automatico al dashboard tras login</div>
+        </div>
+      </div>
+
+      <div class="commit">
+        <span class="commit-badge badge-feat">feat</span>
+        <div class="commit-content">
+          <div class="commit-msg">Admin dashboard completo — UI con branding Xokai, navegacion y stat cards</div>
+          <div class="commit-meta">Autor: <span class="commit-author">Ez</span> · Sidebar con 7 modulos (Dashboard, Alumnos, Grupos, Comunicados, Pagos, Documentos, Pickup) · Stat cards con ceros listos para datos reales · Responsive mobile</div>
+        </div>
+      </div>
+
+      <div class="commit">
+        <span class="commit-badge badge-fix">fix</span>
+        <div class="commit-content">
+          <div class="commit-msg">Fix: color de texto en inputs del login era invisible</div>
+          <div class="commit-meta">Autor: <span class="commit-author">Ez</span> · Detectado en prueba manual · corregido con color: #1C1917</div>
+        </div>
+      </div>
+
+      <div class="commit">
+        <span class="commit-badge badge-docs">docs</span>
+        <div class="commit-content">
+          <div class="commit-msg">CLAUDE_CONTEXT.md — Contexto completo del proyecto para agentes IA</div>
+          <div class="commit-meta">Autor: <span class="commit-author">Claude Agent</span> · 305 lineas · modelo educativo de Habitat, stack, flujos de datos, reglas de negocio</div>
+        </div>
+      </div>
+
+      <div class="commit">
+        <span class="commit-badge badge-infra">infra</span>
+        <div class="commit-content">
+          <div class="commit-msg">Setup completo de infraestructura base — C0-T1 al C0-T8</div>
+          <div class="commit-meta">Autor: <span class="commit-author">Claude Agent</span> · shadcn/ui · Sentry (client/server/edge) · Design system components · Supabase schema 674 lineas con RLS · .env.example</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Estado de modulos -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-icon">🗺️</div>
+      Estado de modulos — hoy
+    </div>
+    <div class="module-grid">
+      <div class="module module-done">
+        <div class="module-dot dot-done"></div>
+        <div>
+          <div class="module-name">Login / Auth</div>
+          <div class="module-status">Funcional — Supabase Auth con redirect</div>
+        </div>
+      </div>
+      <div class="module module-done">
+        <div class="module-dot dot-done"></div>
+        <div>
+          <div class="module-name">Dashboard Admin (shell)</div>
+          <div class="module-status">UI completa — sin datos reales aun</div>
+        </div>
+      </div>
+      <div class="module module-done">
+        <div class="module-dot dot-done"></div>
+        <div>
+          <div class="module-name">DB Schema + RLS</div>
+          <div class="module-status">674 lineas · todas las tablas core</div>
+        </div>
+      </div>
+      <div class="module module-done">
+        <div class="module-dot dot-done"></div>
+        <div>
+          <div class="module-name">Design System</div>
+          <div class="module-status">shadcn/ui + componentes custom base</div>
+        </div>
+      </div>
+      <div class="module module-wip">
+        <div class="module-dot dot-wip"></div>
+        <div>
+          <div class="module-name">Alumnos / Grupos</div>
+          <div class="module-status">Nav lista — paginas internas pendientes</div>
+        </div>
+      </div>
+      <div class="module module-todo">
+        <div class="module-dot dot-todo"></div>
+        <div>
+          <div class="module-name">Pickup / Semaforo GPS</div>
+          <div class="module-status">Solo nav item — logica pendiente</div>
+        </div>
+      </div>
+      <div class="module module-todo">
+        <div class="module-dot dot-todo"></div>
+        <div>
+          <div class="module-name">Comunicados</div>
+          <div class="module-status">Solo nav item — sin implementar</div>
+        </div>
+      </div>
+      <div class="module module-todo">
+        <div class="module-dot dot-todo"></div>
+        <div>
+          <div class="module-name">Pagos / CFDI 4.0</div>
+          <div class="module-status">Schema listo — Stripe sin integrar</div>
+        </div>
+      </div>
+      <div class="module module-todo">
+        <div class="module-dot dot-todo"></div>
+        <div>
+          <div class="module-name">App iOS</div>
+          <div class="module-status">Sin iniciar</div>
+        </div>
+      </div>
+      <div class="module module-todo">
+        <div class="module-dot dot-todo"></div>
+        <div>
+          <div class="module-name">App Android</div>
+          <div class="module-status">Sin iniciar</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Riesgos y bloqueantes -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-icon">⚠️</div>
+      Riesgos y bloqueantes activos
+    </div>
+    <div class="risk-list">
+      <div class="risk">
+        <strong>Dashboard sin datos reales:</strong> Los stat cards muestran ceros hardcodeados. Las paginas internas (Alumnos, Grupos, Comunicados, Pagos, Documentos, Pickup) tienen nav pero no tienen implementacion. Para mostrar algo real a Habitat necesitamos al menos el CRUD de Alumnos y Grupos.
+      </div>
+      <div class="risk">
+        <strong>No hay mobile (iOS/Android):</strong> Las apps de padres no han iniciado. Si Habitat quiere ver el modulo de Pickup en el piloto, los padres necesitan la app. Este es el gap mas grande entre lo construido y lo prometido.
+      </div>
+      <div class="risk">
+        <strong>Stripe / CFDI sin integrar:</strong> El schema de pagos existe pero no hay logica de negocio. Si el piloto con Habitat incluye cobro de colegiaturas, esto bloquea el modulo de Pagos.
+      </div>
+      <div class="risk">
+        <strong>Sin CI/CD configurado:</strong> No hay GitHub Actions ni Vercel Preview Deployments documentados en el repo. El deploy es manual por ahora.
+      </div>
+    </div>
+  </div>
+
+  <!-- Foco para hoy -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-icon">🎯</div>
+      Foco recomendado para hoy — 15 de abril
+    </div>
+    <div class="steps-list">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div><strong>Conectar datos reales al dashboard</strong> — queries a Supabase para stat cards: total alumnos, pagos pendientes, docs sin firmar. Sin datos reales el dashboard es decoracion.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div><strong>Pagina de Alumnos — CRUD basico</strong> — Alta, edicion y listado de alumnos. Es el nucleo de todo lo demas (Pickup, Comunicados, Pagos dependen de alumnos).</div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div><strong>Definir scope del piloto con Habitat</strong> — Que modulos va a usar Habitat en el piloto? Pickup, Comunicados, Pagos? Eso define el orden de desarrollo de las proximas 2 semanas.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div><strong>Iniciar Pickup — logica de semaforo</strong> — Es el modulo diferenciador de Xokai y el de mayor complejidad tecnica (GPS + Realtime). Cuanto antes empiece, mejor.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Highlight -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-icon">💡</div>
+      Nota del Agile Coach para Ez
+    </div>
+    <div class="highlight">
+      <strong>El sprint C0 esta esencialmente cerrado.</strong> En un dia construiste el shell completo de la aplicacion web: auth funcional, dashboard con diseno de producto real, schema de DB con RLS en todas las tablas, y el design system base. Eso es mucho para un dia.<br><br>
+      El siguiente paso critico es pasar de <strong>"UI vacia con ceros"</strong> a <strong>"dashboard con datos reales de Habitat"</strong>. Eso requiere: dar de alta a Habitat en la DB, crear el primer alumno de prueba, y conectar las queries. Con eso, tienes algo demostrable en una reunion.<br><br>
+      El riesgo mayor no es tecnico — es de scope del piloto. Cuanto antes definas con Habitat que modulos van primero, mas eficiente sera el equipo esta semana.
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    Xokai · Daily Standup Report · 15 de abril de 2026<br>
+    Generado por AI Agile Coach · xokai.app · hola@xokai.app<br>
+    <em>Basado en git history real del repositorio ezvaelka/xokai</em>
+  </div>
+
+</div>
+</body>
+</html>
