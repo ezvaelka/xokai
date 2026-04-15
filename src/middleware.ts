@@ -97,9 +97,10 @@ export async function middleware(request: NextRequest) {
       .eq('id', user.id)
       .single()
 
-    // Sin perfil → debe completar invitación
-    if (!profile && !pathname.startsWith('/invite/accept')) {
-      return NextResponse.redirect(new URL('/invite/accept', request.url))
+    // Sin perfil → onboarding (el admin aún no configuró su escuela)
+    // Nota: /invite/accept solo se alcanza via link de email, no desde aquí
+    if (!profile && !isOnboarding && !pathname.startsWith('/invite/accept')) {
+      return NextResponse.redirect(new URL('/onboarding', request.url))
     }
 
     // Con perfil pero sin escuela (y no sysadmin) → onboarding

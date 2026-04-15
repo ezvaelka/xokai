@@ -49,23 +49,27 @@ export default function InviteAcceptPage() {
   } = useForm<Form>({ resolver: zodResolver(schema) })
 
   async function onSubmit(values: Form) {
-    const { error } = await acceptInvitation({
-      first_name: values.first_name,
-      last_name:  values.last_name,
-      password:   values.password,
-    })
+    try {
+      const { error } = await acceptInvitation({
+        first_name: values.first_name,
+        last_name:  values.last_name,
+        password:   values.password,
+      })
 
-    if (error) {
-      setError('root', { message: error })
-      return
+      if (error) {
+        setError('root', { message: error })
+        return
+      }
+
+      setDone(true)
+      toast.success('¡Bienvenido a Xokai!')
+      setTimeout(() => {
+        router.push('/dashboard')
+        router.refresh()
+      }, 1500)
+    } catch (e) {
+      setError('root', { message: 'Error inesperado. Verifica que el enlace de invitación sea válido.' })
     }
-
-    setDone(true)
-    toast.success('¡Bienvenido a Xokai!')
-    setTimeout(() => {
-      router.push('/dashboard')
-      router.refresh()
-    }, 1500)
   }
 
   return (
