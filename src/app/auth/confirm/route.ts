@@ -1,23 +1,26 @@
 import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { cookies }            from 'next/headers'
 import { NextResponse, type NextRequest } from 'next/server'
 
 /**
  * Manejador de callbacks de Supabase Auth.
- * Usado por: magic links, invitaciones, recuperación de contraseña.
+ * Soporta dos flujos:
+ *  - PKCE  (nuevo): llega ?code=xxx              → exchangeCodeForSession
+ *  - OTP   (clásico): llega ?token_hash=xxx&type=xxx → verifyOtp
  *
- * Supabase redirige aquí con ?token_hash=xxx&type=xxx
- * Verificamos el token y redirigimos al destino correcto.
+ * Usado por: magic links, invitaciones, recuperación de contraseña.
  */
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
+
+  const code       = searchParams.get('code')
   const token_hash = searchParams.get('token_hash')
   const type       = searchParams.get('type') as
     | 'recovery' | 'invite' | 'magiclink' | 'email' | 'signup'
     | null
-  const next       = searchParams.get('next') ?? '/dashboard'
+  const next = searchParams.get('next') ?? '/dashboard'
 
-  if (token_hash && type) {
+  if (code || (token_hash && type)) {
     const cookieStore = await cookies()
 
     const supabase = createServerClient(
@@ -35,23 +38,32 @@ export async function GET(request: NextRequest) {
       }
     )
 
-    const { error } = await supabase.auth.verifyOtp({ type, token_hash })
+    // ── Flujo PKCE (code) ────────────────────────────────────────────────────
+    if (code) {
+      const { error } = await supabase.auth.exchangeCodeForSession(code)
+      if (!error) {
+        return NextResponse.redirect(`${origin}${resolveNext(type, next)}`)
+      }
+    }
 
-    if (!error) {
-      // Redirigir según el tipo de confirmación
-      if (type === 'recovery') {
-        return NextResponse.redirect(`${origin}/reset-password`)
+    // ── Flujo OTP (token_hash) ───────────────────────────────────────────────
+    if (token_hash && type) {
+      const { error } = await supabase.auth.verifyOtp({ type, token_hash })
+      if (!error) {
+        return NextResponse.redirect(`${origin}${resolveNext(type, next)}`)
       }
-      if (type === 'invite') {
-        return NextResponse.redirect(`${origin}/invite/accept`)
-      }
-      // magic link, email confirmation → destino indicado o dashboard
-      return NextResponse.redirect(`${origin}${next}`)
     }
   }
 
   // Token inválido o expirado
-  return NextResponse.redirect(
-    `${origin}/login?error=link_invalido`
-  )
+  return NextResponse.redirect(`${origin}/login?error=link_invalido`)
+}
+
+function resolveNext(
+  type: 'recovery' | 'invite' | 'magiclink' | 'email' | 'signup' | null,
+  fallback: string,
+) {
+  if (type === 'recovery') return '/reset-password'
+  if (type === 'invite')   return '/invite/accept'
+  return fallback
 }
