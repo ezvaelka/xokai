@@ -1,19 +1,23 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { useForm }                  from 'react-hook-form'
-import { zodResolver }              from '@hookform/resolvers/zod'
-import { z }                        from 'zod'
-import { toast }                    from 'sonner'
-import { format }                   from 'date-fns'
-import { es }                       from 'date-fns/locale'
+import { useRouter }               from 'next/navigation'
+import { useForm }                 from 'react-hook-form'
+import { zodResolver }             from '@hookform/resolvers/zod'
+import { z }                       from 'zod'
+import { toast }                   from 'sonner'
+import { format }                  from 'date-fns'
+import { es }                      from 'date-fns/locale'
 import {
-  UserPlus, Trash2, Loader2, Mail, ShieldCheck, AlertCircle
+  UserPlus, Trash2, Loader2, Mail, ShieldCheck, AlertCircle, Clock, RotateCcw,
 } from 'lucide-react'
 import { Button }      from '@/components/ui/button'
 import { Input }       from '@/components/ui/input'
 import { Label }       from '@/components/ui/label'
-import { inviteUser, removeUser } from '@/app/actions/invite'
+import {
+  inviteUser, removeUser, resendInvite, cancelInvite,
+} from '@/app/actions/invite'
+import type { PendingInvite } from '@/app/actions/invite'
 
 // ─── Tipos ───────────────────────────────────────────────────────────────────
 
@@ -28,8 +32,9 @@ interface UserRow {
 }
 
 interface Props {
-  initialUsers:  UserRow[]
-  currentUserId: string
+  initialUsers:   UserRow[]
+  initialPending: PendingInvite[]
+  currentUserId:  string
 }
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
@@ -67,16 +72,20 @@ function userName(u: UserRow) {
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 
-export default function UsuariosClient({ initialUsers, currentUserId }: Props) {
+export default function UsuariosClient({ initialUsers, initialPending, currentUserId }: Props) {
+  const router = useRouter()
   const [users,      setUsers]      = useState<UserRow[]>(initialUsers)
+  const [pending,    setPending]    = useState<PendingInvite[]>(initialPending)
   const [showModal,  setShowModal]  = useState(false)
   const [deleting,   setDeleting]   = useState<string | null>(null)
+  const [resending,  setResending]  = useState<string | null>(null)
+  const [cancelling, setCancelling] = useState<string | null>(null)
   const [isPending,  startTransition] = useTransition()
 
   const { register, handleSubmit, reset, formState: { errors, isSubmitting }, setError } =
     useForm<InviteForm>({ resolver: zodResolver(inviteSchema) })
 
-  // ─── Invitar ────────────────────────────────────────────────────────────────
+  // ─── Invitar ─────────────────────────────────────────────────────────────────
 
   async function onInvite(values: InviteForm) {
     const { error } = await inviteUser({ email: values.email, role: values.role })
@@ -87,9 +96,40 @@ export default function UsuariosClient({ initialUsers, currentUserId }: Props) {
     toast.success(`Invitación enviada a ${values.email}`)
     reset()
     setShowModal(false)
+    router.refresh()  // re-fetches server component → updated pending list
   }
 
-  // ─── Eliminar ────────────────────────────────────────────────────────────────
+  // ─── Reenviar invitación ──────────────────────────────────────────────────────
+
+  async function handleResend(inv: PendingInvite) {
+    setResending(inv.email)
+    const { error } = await resendInvite(inv.email, inv.role)
+    if (error) {
+      toast.error(error)
+    } else {
+      toast.success(`Invitación reenviada a ${inv.email}`)
+    }
+    setResending(null)
+  }
+
+  // ─── Cancelar invitación ──────────────────────────────────────────────────────
+
+  async function handleCancelInvite(inv: PendingInvite) {
+    if (!window.confirm(`¿Cancelar la invitación a ${inv.email}?`)) return
+    setCancelling(inv.id)
+    startTransition(async () => {
+      const { error } = await cancelInvite(inv.id)
+      if (error) {
+        toast.error(error)
+      } else {
+        toast.success('Invitación cancelada')
+        setPending(prev => prev.filter(p => p.id !== inv.id))
+      }
+      setCancelling(null)
+    })
+  }
+
+  // ─── Eliminar usuario activo ──────────────────────────────────────────────────
 
   async function handleDelete(userId: string, name: string) {
     if (!window.confirm(`¿Eliminar a ${name}? Esta acción no se puede deshacer.`)) return
@@ -105,6 +145,8 @@ export default function UsuariosClient({ initialUsers, currentUserId }: Props) {
       setDeleting(null)
     })
   }
+
+  const isEmpty = users.length === 0 && pending.length === 0
 
   return (
     <div className="max-w-4xl">
@@ -125,16 +167,17 @@ export default function UsuariosClient({ initialUsers, currentUserId }: Props) {
 
       {/* Tabla */}
       <div className="bg-xk-card rounded-2xl border border-xk-border overflow-hidden">
+
         {/* Header tabla */}
-        <div className="grid grid-cols-[1fr_140px_140px_64px] gap-4 px-6 py-3 bg-xk-subtle border-b border-xk-border">
-          {['Nombre', 'Rol', 'Fecha de alta', ''].map((col) => (
+        <div className="grid grid-cols-[1fr_140px_140px_80px] gap-4 px-6 py-3 bg-xk-subtle border-b border-xk-border">
+          {['Nombre / Correo', 'Rol', 'Fecha', ''].map((col) => (
             <span key={col} className="text-xs font-semibold text-xk-text-secondary uppercase tracking-wide">
               {col}
             </span>
           ))}
         </div>
 
-        {users.length === 0 ? (
+        {isEmpty ? (
           <div className="py-16 text-center">
             <div className="w-12 h-12 rounded-full bg-xk-accent-light flex items-center justify-center mx-auto mb-3">
               <UserPlus size={22} className="text-xk-accent" />
@@ -145,43 +188,92 @@ export default function UsuariosClient({ initialUsers, currentUserId }: Props) {
             </p>
           </div>
         ) : (
-          users.map((u) => (
-            <div key={u.id}
-              className="grid grid-cols-[1fr_140px_140px_64px] gap-4 px-6 py-4 items-center border-b border-xk-border last:border-0 hover:bg-xk-subtle transition-colors">
+          <>
+            {/* ── Invitaciones pendientes ── */}
+            {pending.map((inv) => (
+              <div key={inv.id}
+                className="grid grid-cols-[1fr_140px_140px_80px] gap-4 px-6 py-4 items-center border-b border-xk-border last:border-0 hover:bg-amber-50/40 transition-colors bg-amber-50/20">
 
-              <div>
-                <p className="font-medium text-xk-text text-sm">{userName(u)}</p>
-                <p className="text-xs text-xk-text-muted">ID: {u.id.slice(0, 8)}…</p>
+                <div className="min-w-0">
+                  <p className="font-medium text-xk-text text-sm truncate">{inv.email}</p>
+                  <span className="inline-flex items-center gap-1 mt-0.5 bg-amber-100 text-amber-700 rounded-full px-2 py-0.5 text-xs font-semibold">
+                    <Clock size={10} />
+                    Pendiente
+                  </span>
+                </div>
+
+                <RoleBadge role={inv.role} />
+
+                <span className="text-xs text-xk-text-secondary flex items-center gap-1">
+                  <Clock size={11} className="text-xk-text-muted shrink-0" />
+                  {format(new Date(inv.invited_at), "d MMM yyyy", { locale: es })}
+                </span>
+
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => handleResend(inv)}
+                    disabled={resending === inv.email}
+                    title="Reenviar invitación"
+                    className="flex items-center justify-center w-8 h-8 rounded-lg text-xk-text-muted hover:bg-xk-accent-light hover:text-xk-accent transition-colors disabled:opacity-50"
+                  >
+                    {resending === inv.email
+                      ? <Loader2 size={14} className="animate-spin" />
+                      : <RotateCcw size={14} />}
+                  </button>
+                  <button
+                    onClick={() => handleCancelInvite(inv)}
+                    disabled={cancelling === inv.id}
+                    title="Cancelar invitación"
+                    className="flex items-center justify-center w-8 h-8 rounded-lg text-xk-text-muted hover:bg-red-50 hover:text-red-600 transition-colors disabled:opacity-50"
+                  >
+                    {cancelling === inv.id
+                      ? <Loader2 size={14} className="animate-spin" />
+                      : <Trash2 size={14} />}
+                  </button>
+                </div>
               </div>
+            ))}
 
-              <RoleBadge role={u.role} />
+            {/* ── Usuarios activos ── */}
+            {users.map((u) => (
+              <div key={u.id}
+                className="grid grid-cols-[1fr_140px_140px_80px] gap-4 px-6 py-4 items-center border-b border-xk-border last:border-0 hover:bg-xk-subtle transition-colors">
 
-              <span className="text-xs text-xk-text-secondary">
-                {format(new Date(u.created_at), "d MMM yyyy", { locale: es })}
-              </span>
+                <div>
+                  <p className="font-medium text-xk-text text-sm">{userName(u)}</p>
+                  <p className="text-xs text-xk-text-muted">ID: {u.id.slice(0, 8)}…</p>
+                </div>
 
-              {u.id !== currentUserId ? (
-                <button
-                  onClick={() => handleDelete(u.id, userName(u))}
-                  disabled={deleting === u.id}
-                  title="Eliminar usuario"
-                  className="flex items-center justify-center w-8 h-8 rounded-lg text-xk-text-muted hover:bg-red-50 hover:text-red-600 transition-colors disabled:opacity-50"
-                >
-                  {deleting === u.id
-                    ? <Loader2 size={14} className="animate-spin" />
-                    : <Trash2 size={14} />}
-                </button>
-              ) : (
-                <div />
-              )}
-            </div>
-          ))
+                <RoleBadge role={u.role} />
+
+                <span className="text-xs text-xk-text-secondary">
+                  {format(new Date(u.created_at), "d MMM yyyy", { locale: es })}
+                </span>
+
+                {u.id !== currentUserId ? (
+                  <button
+                    onClick={() => handleDelete(u.id, userName(u))}
+                    disabled={deleting === u.id}
+                    title="Eliminar usuario"
+                    className="flex items-center justify-center w-8 h-8 rounded-lg text-xk-text-muted hover:bg-red-50 hover:text-red-600 transition-colors disabled:opacity-50"
+                  >
+                    {deleting === u.id
+                      ? <Loader2 size={14} className="animate-spin" />
+                      : <Trash2 size={14} />}
+                  </button>
+                ) : (
+                  <div />
+                )}
+              </div>
+            ))}
+          </>
         )}
       </div>
 
       {/* Info */}
       <p className="text-xs text-xk-text-muted mt-4">
         Los usuarios invitados recibirán un correo con un enlace para crear su cuenta.
+        {pending.length > 0 && ` · ${pending.length} invitación${pending.length > 1 ? 'es' : ''} pendiente${pending.length > 1 ? 's' : ''}.`}
       </p>
 
       {/* ── Modal invitar ── */}

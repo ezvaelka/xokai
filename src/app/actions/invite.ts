@@ -6,6 +6,13 @@ import { revalidatePath }    from 'next/cache'
 
 type UserRole = 'admin' | 'teacher' | 'portero'
 
+export interface PendingInvite {
+  id:         string   // auth.users.id
+  email:      string
+  role:       string   // from user_metadata.role
+  invited_at: string   // ISO string
+}
+
 // ─── Invitar usuario a la escuela ─────────────────────────────────────────────
 
 export async function inviteUser(data: { email: string; role: UserRole }) {
@@ -87,7 +94,7 @@ export async function acceptInvitation(data: {
   return { error: null }
 }
 
-// ─── Listar usuarios de la escuela ────────────────────────────────────────────
+// ─── Listar usuarios activos de la escuela ────────────────────────────────────
 
 export async function listSchoolUsers() {
   const supabase = await createClient()
@@ -112,7 +119,122 @@ export async function listSchoolUsers() {
   return { data, error: null }
 }
 
-// ─── Eliminar usuario ─────────────────────────────────────────────────────────
+// ─── Listar invitaciones pendientes de la escuela ─────────────────────────────
+
+export async function listPendingInvites(): Promise<{
+  data: PendingInvite[] | null
+  error: string | null
+}> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { data: null, error: 'No autenticado' }
+
+  const { data: profile } = await supabase
+    .from('user_profiles')
+    .select('school_id, role')
+    .eq('id', user.id)
+    .single()
+
+  if (!profile?.school_id) return { data: [], error: null }
+  if (!['admin', 'sysadmin'].includes(profile.role)) return { data: null, error: 'No autorizado' }
+
+  const admin = createAdminClient()
+  // perPage: 1000 is sufficient for current scale; paginate if platform grows
+  const { data, error } = await admin.auth.admin.listUsers({ perPage: 1000 })
+  if (error) return { data: null, error: error.message }
+
+  const pending: PendingInvite[] = data.users
+    .filter(u =>
+      u.invited_at != null &&
+      u.email_confirmed_at == null &&
+      (u.user_metadata as Record<string, string>)?.school_id === profile.school_id
+    )
+    .map(u => ({
+      id:         u.id,
+      email:      u.email ?? '',
+      role:       ((u.user_metadata as Record<string, string>)?.role) ?? 'teacher',
+      invited_at: u.invited_at!,
+    }))
+
+  return { data: pending, error: null }
+}
+
+// ─── Reenviar invitación ──────────────────────────────────────────────────────
+
+export async function resendInvite(email: string, role: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'No autenticado' }
+
+  const { data: profile } = await supabase
+    .from('user_profiles')
+    .select('role, school_id')
+    .eq('id', user.id)
+    .single()
+
+  if (!profile || !['admin', 'sysadmin'].includes(profile.role)) {
+    return { error: 'No tienes permisos para reenviar invitaciones' }
+  }
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+  const admin  = createAdminClient()
+
+  // inviteUserByEmail acts as upsert for pending (unconfirmed) users:
+  // it updates invited_at and resends the email automatically
+  const { error } = await admin.auth.admin.inviteUserByEmail(email, {
+    redirectTo: `${appUrl}/auth/confirm?type=invite`,
+    data: {
+      role,
+      school_id:  profile.school_id,
+      invited_by: user.id,
+    },
+  })
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/dashboard/configuracion/usuarios')
+  return { error: null }
+}
+
+// ─── Cancelar invitación pendiente ────────────────────────────────────────────
+
+export async function cancelInvite(targetUserId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'No autenticado' }
+
+  const { data: profile } = await supabase
+    .from('user_profiles')
+    .select('role, school_id')
+    .eq('id', user.id)
+    .single()
+
+  if (!profile || !['admin', 'sysadmin'].includes(profile.role)) {
+    return { error: 'No tienes permisos' }
+  }
+
+  const admin = createAdminClient()
+
+  // Re-verify the target is actually a pending invite for this school before deleting
+  const { data: targetData, error: fetchErr } = await admin.auth.admin.getUserById(targetUserId)
+  if (fetchErr || !targetData.user) return { error: 'Usuario no encontrado' }
+
+  const t = targetData.user
+  const isPending =
+    t.invited_at != null &&
+    t.email_confirmed_at == null &&
+    (t.user_metadata as Record<string, string>)?.school_id === profile.school_id
+
+  if (!isPending) return { error: 'No es una invitación pendiente de esta escuela' }
+
+  const { error } = await admin.auth.admin.deleteUser(targetUserId)
+  if (error) return { error: error.message }
+
+  revalidatePath('/dashboard/configuracion/usuarios')
+  return { error: null }
+}
+
+// ─── Eliminar usuario activo ──────────────────────────────────────────────────
 
 export async function removeUser(targetUserId: string) {
   const supabase = await createClient()

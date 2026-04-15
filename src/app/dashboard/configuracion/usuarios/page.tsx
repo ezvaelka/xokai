@@ -1,7 +1,8 @@
-import { redirect }    from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
-import DashboardShell   from '@/components/DashboardShell'
-import UsuariosClient   from './UsuariosClient'
+import { redirect }           from 'next/navigation'
+import { createClient }        from '@/lib/supabase/server'
+import DashboardShell          from '@/components/DashboardShell'
+import UsuariosClient          from './UsuariosClient'
+import { listPendingInvites }  from '@/app/actions/invite'
 
 export default async function UsuariosPage() {
   const supabase = await createClient()
@@ -19,18 +20,21 @@ export default async function UsuariosPage() {
     redirect('/dashboard')
   }
 
-  // Obtener usuarios de la escuela
-  const { data: users } = await supabase
-    .from('user_profiles')
-    .select('id, first_name, last_name, role, created_at')
-    .eq('school_id', profile.school_id)
-    .order('created_at', { ascending: false })
+  // Obtener usuarios activos e invitaciones pendientes en paralelo
+  const [{ data: users }, { data: pendingInvites }] = await Promise.all([
+    supabase
+      .from('user_profiles')
+      .select('id, first_name, last_name, role, created_at')
+      .eq('school_id', profile.school_id!)
+      .order('created_at', { ascending: false }),
+    listPendingInvites(),
+  ])
 
-  // Correos de auth.users no disponibles vía RLS normal, incluimos lo que tenemos
   return (
     <DashboardShell activeHref="/dashboard/configuracion/usuarios">
       <UsuariosClient
         initialUsers={users ?? []}
+        initialPending={pendingInvites ?? []}
         currentUserId={user.id}
       />
     </DashboardShell>
