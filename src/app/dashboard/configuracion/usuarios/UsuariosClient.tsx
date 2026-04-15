@@ -43,10 +43,10 @@ type InviteForm = z.infer<typeof inviteSchema>
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const ROLE_LABELS: Record<string, { label: string; color: string; bg: string }> = {
-  admin:    { label: 'Administrador', color: '#1A6B4A', bg: '#E6F4ED' },
+  admin:    { label: 'Administrador', color: '#6D4AE8', bg: '#EDE9FE' },
   teacher:  { label: 'Maestro',       color: '#D97706', bg: '#FEF3C7' },
   portero:  { label: 'Portero',       color: '#6B6760', bg: '#EFEDE8' },
-  sysadmin: { label: 'Sysadmin',      color: '#7C3AED', bg: '#EDE9FE' },
+  sysadmin: { label: 'Sysadmin',      color: '#4C1D95', bg: '#EDE9FE' },
 }
 
 function RoleBadge({ role }: { role: string }) {
