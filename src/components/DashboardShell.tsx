@@ -2,6 +2,7 @@ import { redirect }    from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import DashboardNav     from '@/components/DashboardNav'
 import DashboardLogout  from '@/components/DashboardLogout'
+import MobileNav        from '@/components/MobileNav'
 
 // ─── Tipos ───────────────────────────────────────────────────────────────────
 
@@ -216,8 +217,9 @@ export default async function DashboardShell({ children, activeHref }: ShellProp
         <div className="xk-main">
 
           {/* Header */}
-          <header className="h-16 shrink-0 bg-xk-card border-b border-xk-border flex items-center justify-between px-6 z-10">
-            <div className="flex items-center gap-3">
+          <header className="h-16 shrink-0 bg-xk-card border-b border-xk-border flex items-center justify-between px-4 lg:px-6 z-10">
+            <div className="flex items-center gap-2 lg:gap-3">
+              <MobileNav items={visibleNav} schoolName={schoolName} />
               <span className="font-heading text-xl font-bold text-xk-accent">Xokai</span>
               <span className="hidden sm:flex items-center gap-1.5">
                 <span className="w-px h-4 bg-xk-border" />

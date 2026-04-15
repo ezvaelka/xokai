@@ -6,10 +6,10 @@ import { useForm }                 from 'react-hook-form'
 import { zodResolver }             from '@hookform/resolvers/zod'
 import { z }                       from 'zod'
 import { toast }                   from 'sonner'
-import { format }                  from 'date-fns'
+import { format, addDays, isPast, differenceInHours } from 'date-fns'
 import { es }                      from 'date-fns/locale'
 import {
-  UserPlus, Trash2, Loader2, Mail, ShieldCheck, AlertCircle, Clock, RotateCcw,
+  UserPlus, Trash2, Loader2, Mail, ShieldCheck, AlertCircle, Clock, RotateCcw, Timer,
 } from 'lucide-react'
 import { Button }      from '@/components/ui/button'
 import { Input }       from '@/components/ui/input'
@@ -20,8 +20,6 @@ import {
 import type { PendingInvite } from '@/app/actions/invite'
 
 // ─── Tipos ───────────────────────────────────────────────────────────────────
-
-type UserRole = 'admin' | 'teacher' | 'portero'
 
 interface UserRow {
   id:         string
@@ -47,6 +45,8 @@ type InviteForm = z.infer<typeof inviteSchema>
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+const INVITE_EXPIRY_DAYS = 7
+
 const ROLE_LABELS: Record<string, { label: string; color: string; bg: string }> = {
   admin:    { label: 'Administrador', color: '#6D4AE8', bg: '#EDE9FE' },
   teacher:  { label: 'Maestro',       color: '#D97706', bg: '#FEF3C7' },
@@ -61,6 +61,28 @@ function RoleBadge({ role }: { role: string }) {
       style={{ color: cfg.color, backgroundColor: cfg.bg }}>
       <ShieldCheck size={12} />
       {cfg.label}
+    </span>
+  )
+}
+
+function ExpiryBadge({ invitedAt }: { invitedAt: string }) {
+  const expiry  = addDays(new Date(invitedAt), INVITE_EXPIRY_DAYS)
+  const expired = isPast(expiry)
+  const hoursLeft = differenceInHours(expiry, new Date())
+
+  if (expired) {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-600">
+        <Timer size={11} />
+        Expiró
+      </span>
+    )
+  }
+
+  const urgent = hoursLeft < 48
+  return (
+    <span className={`text-xs ${urgent ? 'text-amber-600 font-semibold' : 'text-xk-text-secondary'}`}>
+      {format(expiry, "d MMM yyyy", { locale: es })}
     </span>
   )
 }
@@ -80,7 +102,7 @@ export default function UsuariosClient({ initialUsers, initialPending, currentUs
   const [deleting,   setDeleting]   = useState<string | null>(null)
   const [resending,  setResending]  = useState<string | null>(null)
   const [cancelling, setCancelling] = useState<string | null>(null)
-  const [isPending,  startTransition] = useTransition()
+  const [,           startTransition] = useTransition()
 
   const { register, handleSubmit, reset, formState: { errors, isSubmitting }, setError } =
     useForm<InviteForm>({ resolver: zodResolver(inviteSchema) })
@@ -89,14 +111,11 @@ export default function UsuariosClient({ initialUsers, initialPending, currentUs
 
   async function onInvite(values: InviteForm) {
     const { error } = await inviteUser({ email: values.email, role: values.role })
-    if (error) {
-      setError('root', { message: error })
-      return
-    }
+    if (error) { setError('root', { message: error }); return }
     toast.success(`Invitación enviada a ${values.email}`)
     reset()
     setShowModal(false)
-    router.refresh()  // re-fetches server component → updated pending list
+    router.refresh()
   }
 
   // ─── Reenviar invitación ──────────────────────────────────────────────────────
@@ -104,11 +123,8 @@ export default function UsuariosClient({ initialUsers, initialPending, currentUs
   async function handleResend(inv: PendingInvite) {
     setResending(inv.email)
     const { error } = await resendInvite(inv.email, inv.role)
-    if (error) {
-      toast.error(error)
-    } else {
-      toast.success(`Invitación reenviada a ${inv.email}`)
-    }
+    if (error) { toast.error(error) }
+    else { toast.success(`Invitación reenviada a ${inv.email}`) }
     setResending(null)
   }
 
@@ -119,9 +135,8 @@ export default function UsuariosClient({ initialUsers, initialPending, currentUs
     setCancelling(inv.id)
     startTransition(async () => {
       const { error } = await cancelInvite(inv.id)
-      if (error) {
-        toast.error(error)
-      } else {
+      if (error) { toast.error(error) }
+      else {
         toast.success('Invitación cancelada')
         setPending(prev => prev.filter(p => p.id !== inv.id))
       }
@@ -129,16 +144,15 @@ export default function UsuariosClient({ initialUsers, initialPending, currentUs
     })
   }
 
-  // ─── Eliminar usuario activo ──────────────────────────────────────────────────
+  // ─── Eliminar usuario ─────────────────────────────────────────────────────────
 
   async function handleDelete(userId: string, name: string) {
     if (!window.confirm(`¿Eliminar a ${name}? Esta acción no se puede deshacer.`)) return
     setDeleting(userId)
     startTransition(async () => {
       const { error } = await removeUser(userId)
-      if (error) {
-        toast.error(error)
-      } else {
+      if (error) { toast.error(error) }
+      else {
         toast.success(`${name} eliminado correctamente`)
         setUsers(prev => prev.filter(u => u.id !== userId))
       }
@@ -161,114 +175,216 @@ export default function UsuariosClient({ initialUsers, initialPending, currentUs
         </div>
         <Button onClick={() => setShowModal(true)} className="gap-2 shrink-0">
           <UserPlus size={16} />
-          Invitar usuario
+          <span className="hidden sm:inline">Invitar usuario</span>
+          <span className="sm:hidden">Invitar</span>
         </Button>
       </div>
 
-      {/* Tabla */}
-      <div className="bg-xk-card rounded-2xl border border-xk-border overflow-hidden">
-
-        {/* Header tabla */}
-        <div className="grid grid-cols-[1fr_140px_140px_80px] gap-4 px-6 py-3 bg-xk-subtle border-b border-xk-border">
-          {['Nombre / Correo', 'Rol', 'Fecha', ''].map((col) => (
-            <span key={col} className="text-xs font-semibold text-xk-text-secondary uppercase tracking-wide">
-              {col}
-            </span>
-          ))}
-        </div>
-
-        {isEmpty ? (
-          <div className="py-16 text-center">
-            <div className="w-12 h-12 rounded-full bg-xk-accent-light flex items-center justify-center mx-auto mb-3">
-              <UserPlus size={22} className="text-xk-accent" />
-            </div>
-            <p className="font-semibold text-xk-text">Sin usuarios aún</p>
-            <p className="text-sm text-xk-text-muted mt-1">
-              Invita a tu equipo con el botón de arriba.
-            </p>
+      {isEmpty ? (
+        <div className="bg-xk-card rounded-2xl border border-xk-border py-16 text-center">
+          <div className="w-12 h-12 rounded-full bg-xk-accent-light flex items-center justify-center mx-auto mb-3">
+            <UserPlus size={22} className="text-xk-accent" />
           </div>
-        ) : (
-          <>
-            {/* ── Invitaciones pendientes ── */}
-            {pending.map((inv) => (
-              <div key={inv.id}
-                className="grid grid-cols-[1fr_140px_140px_80px] gap-4 px-6 py-4 items-center border-b border-xk-border last:border-0 hover:bg-amber-50/40 transition-colors bg-amber-50/20">
+          <p className="font-semibold text-xk-text">Sin usuarios aún</p>
+          <p className="text-sm text-xk-text-muted mt-1">
+            Invita a tu equipo con el botón de arriba.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-6">
 
-                <div className="min-w-0">
-                  <p className="font-medium text-xk-text text-sm truncate">{inv.email}</p>
-                  <span className="inline-flex items-center gap-1 mt-0.5 bg-amber-100 text-amber-700 rounded-full px-2 py-0.5 text-xs font-semibold">
-                    <Clock size={10} />
-                    Pendiente
-                  </span>
-                </div>
-
-                <RoleBadge role={inv.role} />
-
-                <span className="text-xs text-xk-text-secondary flex items-center gap-1">
-                  <Clock size={11} className="text-xk-text-muted shrink-0" />
-                  {format(new Date(inv.invited_at), "d MMM yyyy", { locale: es })}
+          {/* ── Sección: Invitaciones pendientes ── */}
+          {pending.length > 0 && (
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <h2 className="text-sm font-semibold text-xk-text-secondary uppercase tracking-wide">
+                  Invitaciones pendientes
+                </h2>
+                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-100 text-amber-700 text-xs font-bold">
+                  {pending.length}
                 </span>
-
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => handleResend(inv)}
-                    disabled={resending === inv.email}
-                    title="Reenviar invitación"
-                    className="flex items-center justify-center w-8 h-8 rounded-lg text-xk-text-muted hover:bg-xk-accent-light hover:text-xk-accent transition-colors disabled:opacity-50"
-                  >
-                    {resending === inv.email
-                      ? <Loader2 size={14} className="animate-spin" />
-                      : <RotateCcw size={14} />}
-                  </button>
-                  <button
-                    onClick={() => handleCancelInvite(inv)}
-                    disabled={cancelling === inv.id}
-                    title="Cancelar invitación"
-                    className="flex items-center justify-center w-8 h-8 rounded-lg text-xk-text-muted hover:bg-red-50 hover:text-red-600 transition-colors disabled:opacity-50"
-                  >
-                    {cancelling === inv.id
-                      ? <Loader2 size={14} className="animate-spin" />
-                      : <Trash2 size={14} />}
-                  </button>
-                </div>
               </div>
-            ))}
 
-            {/* ── Usuarios activos ── */}
-            {users.map((u) => (
-              <div key={u.id}
-                className="grid grid-cols-[1fr_140px_140px_80px] gap-4 px-6 py-4 items-center border-b border-xk-border last:border-0 hover:bg-xk-subtle transition-colors">
-
-                <div>
-                  <p className="font-medium text-xk-text text-sm">{userName(u)}</p>
-                  <p className="text-xs text-xk-text-muted">ID: {u.id.slice(0, 8)}…</p>
+              <div className="bg-xk-card rounded-2xl border border-xk-border overflow-hidden">
+                {/* Header tabla pendientes */}
+                <div className="hidden sm:grid sm:grid-cols-[1fr_130px_110px_110px_80px] gap-3 px-5 py-3 bg-xk-subtle border-b border-xk-border">
+                  {['Correo', 'Rol', 'Enviada', 'Expira', ''].map((col) => (
+                    <span key={col} className="text-xs font-semibold text-xk-text-secondary uppercase tracking-wide">
+                      {col}
+                    </span>
+                  ))}
                 </div>
 
-                <RoleBadge role={u.role} />
+                {pending.map((inv) => (
+                  <div key={inv.id}
+                    className="border-b border-xk-border last:border-0 bg-amber-50/20 hover:bg-amber-50/40 transition-colors">
 
-                <span className="text-xs text-xk-text-secondary">
-                  {format(new Date(u.created_at), "d MMM yyyy", { locale: es })}
+                    {/* Desktop row */}
+                    <div className="hidden sm:grid sm:grid-cols-[1fr_130px_110px_110px_80px] gap-3 px-5 py-4 items-center">
+                      <div className="min-w-0">
+                        <p className="font-medium text-xk-text text-sm truncate">{inv.email}</p>
+                        <span className="inline-flex items-center gap-1 mt-0.5 bg-amber-100 text-amber-700 rounded-full px-2 py-0.5 text-xs font-semibold">
+                          <Clock size={10} />
+                          Pendiente
+                        </span>
+                      </div>
+                      <RoleBadge role={inv.role} />
+                      <span className="text-xs text-xk-text-secondary">
+                        {format(new Date(inv.invited_at), "d MMM yyyy", { locale: es })}
+                      </span>
+                      <ExpiryBadge invitedAt={inv.invited_at} />
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => handleResend(inv)}
+                          disabled={resending === inv.email}
+                          title="Reenviar invitación"
+                          className="flex items-center justify-center w-8 h-8 rounded-lg text-xk-text-muted hover:bg-xk-accent-light hover:text-xk-accent transition-colors disabled:opacity-50"
+                        >
+                          {resending === inv.email
+                            ? <Loader2 size={14} className="animate-spin" />
+                            : <RotateCcw size={14} />}
+                        </button>
+                        <button
+                          onClick={() => handleCancelInvite(inv)}
+                          disabled={cancelling === inv.id}
+                          title="Cancelar invitación"
+                          className="flex items-center justify-center w-8 h-8 rounded-lg text-xk-text-muted hover:bg-red-50 hover:text-red-600 transition-colors disabled:opacity-50"
+                        >
+                          {cancelling === inv.id
+                            ? <Loader2 size={14} className="animate-spin" />
+                            : <Trash2 size={14} />}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Mobile card */}
+                    <div className="sm:hidden px-4 py-3 flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-medium text-xk-text text-sm truncate">{inv.email}</p>
+                        <div className="flex items-center flex-wrap gap-2 mt-1.5">
+                          <RoleBadge role={inv.role} />
+                          <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-700 rounded-full px-2 py-0.5 text-xs font-semibold">
+                            <Clock size={10} /> Pendiente
+                          </span>
+                        </div>
+                        <p className="text-xs text-xk-text-muted mt-1.5">
+                          Enviada {format(new Date(inv.invited_at), "d MMM yyyy", { locale: es })}
+                          {' · '}
+                          Expira <ExpiryBadge invitedAt={inv.invited_at} />
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0 mt-0.5">
+                        <button
+                          onClick={() => handleResend(inv)}
+                          disabled={resending === inv.email}
+                          title="Reenviar"
+                          className="flex items-center justify-center w-8 h-8 rounded-lg text-xk-text-muted hover:bg-xk-accent-light hover:text-xk-accent transition-colors disabled:opacity-50"
+                        >
+                          {resending === inv.email
+                            ? <Loader2 size={14} className="animate-spin" />
+                            : <RotateCcw size={14} />}
+                        </button>
+                        <button
+                          onClick={() => handleCancelInvite(inv)}
+                          disabled={cancelling === inv.id}
+                          title="Cancelar"
+                          className="flex items-center justify-center w-8 h-8 rounded-lg text-xk-text-muted hover:bg-red-50 hover:text-red-600 transition-colors disabled:opacity-50"
+                        >
+                          {cancelling === inv.id
+                            ? <Loader2 size={14} className="animate-spin" />
+                            : <Trash2 size={14} />}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── Sección: Usuarios activos ── */}
+          {users.length > 0 && (
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <h2 className="text-sm font-semibold text-xk-text-secondary uppercase tracking-wide">
+                  Usuarios activos
+                </h2>
+                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-xk-accent-light text-xk-accent text-xs font-bold">
+                  {users.length}
                 </span>
-
-                {u.id !== currentUserId ? (
-                  <button
-                    onClick={() => handleDelete(u.id, userName(u))}
-                    disabled={deleting === u.id}
-                    title="Eliminar usuario"
-                    className="flex items-center justify-center w-8 h-8 rounded-lg text-xk-text-muted hover:bg-red-50 hover:text-red-600 transition-colors disabled:opacity-50"
-                  >
-                    {deleting === u.id
-                      ? <Loader2 size={14} className="animate-spin" />
-                      : <Trash2 size={14} />}
-                  </button>
-                ) : (
-                  <div />
-                )}
               </div>
-            ))}
-          </>
-        )}
-      </div>
+
+              <div className="bg-xk-card rounded-2xl border border-xk-border overflow-hidden">
+                {/* Header tabla activos */}
+                <div className="hidden sm:grid sm:grid-cols-[1fr_140px_140px_64px] gap-4 px-6 py-3 bg-xk-subtle border-b border-xk-border">
+                  {['Nombre', 'Rol', 'Fecha de alta', ''].map((col) => (
+                    <span key={col} className="text-xs font-semibold text-xk-text-secondary uppercase tracking-wide">
+                      {col}
+                    </span>
+                  ))}
+                </div>
+
+                {users.map((u) => (
+                  <div key={u.id}
+                    className="border-b border-xk-border last:border-0 hover:bg-xk-subtle transition-colors">
+
+                    {/* Desktop row */}
+                    <div className="hidden sm:grid sm:grid-cols-[1fr_140px_140px_64px] gap-4 px-6 py-4 items-center">
+                      <div>
+                        <p className="font-medium text-xk-text text-sm">{userName(u)}</p>
+                        <p className="text-xs text-xk-text-muted">ID: {u.id.slice(0, 8)}…</p>
+                      </div>
+                      <RoleBadge role={u.role} />
+                      <span className="text-xs text-xk-text-secondary">
+                        {format(new Date(u.created_at), "d MMM yyyy", { locale: es })}
+                      </span>
+                      {u.id !== currentUserId ? (
+                        <button
+                          onClick={() => handleDelete(u.id, userName(u))}
+                          disabled={deleting === u.id}
+                          title="Eliminar usuario"
+                          className="flex items-center justify-center w-8 h-8 rounded-lg text-xk-text-muted hover:bg-red-50 hover:text-red-600 transition-colors disabled:opacity-50"
+                        >
+                          {deleting === u.id
+                            ? <Loader2 size={14} className="animate-spin" />
+                            : <Trash2 size={14} />}
+                        </button>
+                      ) : (
+                        <div />
+                      )}
+                    </div>
+
+                    {/* Mobile card */}
+                    <div className="sm:hidden px-4 py-3 flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-medium text-xk-text text-sm">{userName(u)}</p>
+                        <div className="flex items-center gap-2 mt-1.5">
+                          <RoleBadge role={u.role} />
+                        </div>
+                        <p className="text-xs text-xk-text-muted mt-1">
+                          Alta {format(new Date(u.created_at), "d MMM yyyy", { locale: es })}
+                        </p>
+                      </div>
+                      {u.id !== currentUserId && (
+                        <button
+                          onClick={() => handleDelete(u.id, userName(u))}
+                          disabled={deleting === u.id}
+                          title="Eliminar usuario"
+                          className="flex items-center justify-center w-8 h-8 rounded-lg text-xk-text-muted hover:bg-red-50 hover:text-red-600 transition-colors disabled:opacity-50 shrink-0"
+                        >
+                          {deleting === u.id
+                            ? <Loader2 size={14} className="animate-spin" />
+                            : <Trash2 size={14} />}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Info */}
       <p className="text-xs text-xk-text-muted mt-4">
