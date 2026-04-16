@@ -527,6 +527,7 @@ export default function OnboardingClient({ userEmail }: Props) {
                   <>
                     {detailsData.ciudad && <Row label="Ciudad" value={detailsData.ciudad} />}
                     {detailsData.telefono && <Row label="Teléfono" value={detailsData.telefono} />}
+                    {detailsData.email && <Row label="Correo escuela" value={detailsData.email} />}
                   </>
                 ) : <SkippedBadge label="Datos de contacto" onEdit={() => setStep(3)} />}
                 {fiscalData ? (
