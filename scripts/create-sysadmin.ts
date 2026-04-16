@@ -73,7 +73,7 @@ async function main() {
 
   console.log(`\n✓ Sysadmin creado: ${email}`)
   console.log(`  ID: ${userId}`)
-  console.log(`  Entra en: ${url.replace('supabase.co', '').replace('https://', '').split('.')[0] ? 'admin.xokai.app/login' : 'admin.xokai.app/login'}\n`)
+  console.log(`  Entra en: admin.xokai.app/login\n`)
 }
 
 main().catch((err) => {

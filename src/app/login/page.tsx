@@ -43,12 +43,12 @@ export default function LoginPage() {
   })
 
   async function onPasswordSubmit(values: PasswordForm) {
-    const { error } = await signInWithPassword(values.email, values.password)
+    const { error, role } = await signInWithPassword(values.email, values.password)
     if (error) {
       pwForm.setError('root', { message: error })
       return
     }
-    router.push('/dashboard')
+    router.push(role === 'sysadmin' ? '/sysadmin' : '/dashboard')
     router.refresh()
   }
 

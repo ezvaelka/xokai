@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import { getSchoolDetail, type SchoolStatus } from '@/app/actions/sysadmin'
 import SchoolActions from './SchoolActions'
+import SchoolNotes   from './SchoolNotes'
 
 const STATUS_BADGE: Record<Exclude<SchoolStatus, 'all'>, { label: string; className: string }> = {
   active:     { label: 'Activa',        className: 'bg-green-100 text-green-700 border-green-200' },
@@ -122,6 +123,13 @@ export default async function SchoolDetailPage({
           <Row label="Creada"                value={fmtDate(school.created_at)} />
         </section>
       </div>
+
+      {/* Notas internas */}
+      <section className="bg-xk-card border border-xk-border rounded-2xl mt-5 p-5">
+        <h2 className="font-heading text-base font-semibold text-xk-text mb-3">Notas internas</h2>
+        <p className="text-xs text-xk-text-muted mb-3">Solo visibles para sysadmin. Úsalas para contexto de seguimiento.</p>
+        <SchoolNotes schoolId={school.id} initialNotes={school.internal_notes} />
+      </section>
 
       {/* Usuarios */}
       <section className="bg-xk-card border border-xk-border rounded-2xl mt-5 overflow-hidden">

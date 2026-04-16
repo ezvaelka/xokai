@@ -10,9 +10,19 @@ import { createAdminClient } from '@/lib/supabase/admin'
 export async function signInWithPassword(email: string, password: string) {
   const supabase = await createClient()
   const { error } = await supabase.auth.signInWithPassword({ email, password })
-  if (error) return { error: traducirError(error.message) }
+  if (error) return { error: traducirError(error.message), role: null }
   revalidatePath('/', 'layout')
-  return { error: null }
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: null, role: null }
+
+  const { data: profile } = await supabase
+    .from('user_profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  return { error: null, role: profile?.role ?? null }
 }
 
 // ─── Crear cuenta ────────────────────────────────────────────────────────────

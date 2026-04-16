@@ -44,6 +44,7 @@ export type SchoolDetail = {
     pickup_end:            string | null
     pickup_tolerance_mins: number
     onboarding_completed:  boolean
+    internal_notes:        string | null
     created_at:            string
   }
   status:       Exclude<SchoolStatus, 'all'>
@@ -280,4 +281,21 @@ export async function resendMagicLinkToDirector(schoolId: string) {
 
   if (error) return { error: error.message }
   return { error: null, email }
+}
+
+// ─── updateSchoolNotes ────────────────────────────────────────────────────────
+
+export async function updateSchoolNotes(schoolId: string, notes: string) {
+  await requireSysadmin()
+  const admin = createAdminClient()
+
+  const { error } = await admin
+    .from('schools')
+    .update({ internal_notes: notes })
+    .eq('id', schoolId)
+
+  if (error) return { error: error.message }
+
+  revalidatePath(`/sysadmin/schools/${schoolId}`)
+  return { error: null }
 }

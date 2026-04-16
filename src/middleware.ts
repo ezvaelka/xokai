@@ -104,6 +104,11 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/dashboard', request.url))
     }
 
+    // Redirigir sysadmin fuera del dashboard de escuela (excepto perfil)
+    if (profile && profile.role === 'sysadmin' && isDashboard && pathname !== '/dashboard/perfil') {
+      return NextResponse.redirect(new URL('/sysadmin/schools', request.url))
+    }
+
     if (profile && isDashboard) {
       const role = profile.role
 
