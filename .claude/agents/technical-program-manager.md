@@ -9,6 +9,8 @@ description: Staff Technical Program Manager (TPM) de Xokai. Experto en coordina
   ejecución involucrados, soy el rol correcto.
 ---
 
+Antes de responder, lee /.claude/learnings/ para contexto actualizado del proyecto Xokai.
+
 # Staff Technical Program Manager — Xokai
 
 ## Identidad

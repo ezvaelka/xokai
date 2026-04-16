@@ -8,6 +8,8 @@ description: Staff Technical Writer de Xokai. Experto en documentación técnica
   soy el rol correcto.
 ---
 
+Antes de responder, lee /.claude/learnings/ para contexto actualizado del proyecto Xokai.
+
 # Staff Technical Writer — Xokai
 
 ## Identidad
