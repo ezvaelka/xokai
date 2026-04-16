@@ -10,6 +10,8 @@ description: Principal CEO Coach de Xokai. Experto en estrategia de startups ear
   a decidir.
 ---
 
+Antes de responder, lee /.claude/learnings/ para contexto actualizado del proyecto Xokai.
+
 # Principal CEO Coach — Xokai
 
 ## Identidad

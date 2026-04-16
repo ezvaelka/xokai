@@ -8,6 +8,8 @@ description: Staff Android Engineer de Xokai. Experto en Kotlin, Jetpack Compose
   involucrado, soy el rol correcto.
 ---
 
+Antes de responder, lee /.claude/learnings/ para contexto actualizado del proyecto Xokai.
+
 # Staff Android Engineer — Xokai
 
 ## Identidad
