@@ -61,11 +61,12 @@ export async function middleware(request: NextRequest) {
   const isPublicPath = PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))
   const isDashboard  = pathname.startsWith('/dashboard')
   const isOnboarding = pathname.startsWith('/onboarding')
+  const isSysadmin   = pathname.startsWith('/sysadmin')
 
   // ── Sin autenticación ───────────────────────────────────────────────────────
 
   if (!user) {
-    if (isDashboard || isOnboarding) {
+    if (isDashboard || isOnboarding || isSysadmin) {
       const loginUrl = new URL('/login', request.url)
       loginUrl.searchParams.set('redirect', pathname)
       return NextResponse.redirect(loginUrl)
@@ -84,7 +85,7 @@ export async function middleware(request: NextRequest) {
 
   // ── Verificar perfil y rol ──────────────────────────────────────────────────
 
-  if (isDashboard || isOnboarding) {
+  if (isDashboard || isOnboarding || isSysadmin) {
     const { data: profile } = await supabase
       .from('user_profiles')
       .select('role, school_id')
@@ -97,6 +98,10 @@ export async function middleware(request: NextRequest) {
 
     if (profile && !profile.school_id && profile.role !== 'sysadmin' && !isOnboarding) {
       return NextResponse.redirect(new URL('/onboarding', request.url))
+    }
+
+    if (profile && isSysadmin && profile.role !== 'sysadmin') {
+      return NextResponse.redirect(new URL('/dashboard', request.url))
     }
 
     if (profile && isDashboard) {
