@@ -1,28 +1,42 @@
-import { redirect }    from 'next/navigation'
+import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import DashboardShell   from '@/components/DashboardShell'
-import ComingSoon       from '@/components/ComingSoon'
+import DashboardShell from '@/components/DashboardShell'
+import AlumnosClient from './AlumnosClient'
 
 export default async function AlumnosPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  const { data: profile } = await supabase
+    .from('user_profiles')
+    .select('school_id, role')
+    .eq('id', user.id)
+    .single()
+
+  if (!profile?.school_id) redirect('/dashboard')
+
+  const [{ data: students }, { data: groups }] = await Promise.all([
+    supabase
+      .from('students')
+      .select('id, student_code, first_name, last_name, active, group_id, date_of_birth, allergies, medical_notes')
+      .eq('school_id', profile.school_id)
+      .order('last_name')
+      .order('first_name'),
+    supabase
+      .from('groups')
+      .select('id, name')
+      .eq('school_id', profile.school_id)
+      .eq('active', true)
+      .order('name'),
+  ])
+
   return (
     <DashboardShell activeHref="/dashboard/alumnos">
-      <ComingSoon
-        title="Alumnos"
-        description="Registra y gestiona el directorio de alumnos, asigna grupos, lleva asistencias y conecta cada alumno con su familia."
-        eta="Próximamente"
-        icon={
-          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-            <circle cx="9" cy="7" r="4"/>
-            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-          </svg>
-        }
+      <AlumnosClient
+        students={students ?? []}
+        groups={groups ?? []}
+        schoolId={profile.school_id}
       />
     </DashboardShell>
   )
