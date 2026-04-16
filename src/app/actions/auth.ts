@@ -2,7 +2,8 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createClient }      from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 // ─── Login con email + password ──────────────────────────────────────────────
 
@@ -14,21 +15,38 @@ export async function signInWithPassword(email: string, password: string) {
   return { error: null }
 }
 
-// ─── Magic link ───────────────────────────────────────────────────────────────
+// ─── Crear cuenta ────────────────────────────────────────────────────────────
 
-export async function signInWithMagicLink(email: string) {
+export async function signUp(email: string, password: string) {
   const supabase = await createClient()
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
-
-  const { error } = await supabase.auth.signInWithOtp({
-    email,
-    options: {
-      emailRedirectTo: `${appUrl}/auth/confirm?next=/dashboard`,
-    },
-  })
-
+  const { error } = await supabase.auth.signUp({ email, password })
   if (error) return { error: traducirError(error.message) }
+  revalidatePath('/', 'layout')
   return { error: null }
+}
+
+// ─── Subir avatar ─────────────────────────────────────────────────────────────
+
+export async function uploadAvatar(formData: FormData) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'No autenticado', url: null }
+
+  const file = formData.get('file') as File
+  if (!file || file.size === 0) return { error: 'Archivo inválido', url: null }
+  if (file.size > 3 * 1024 * 1024) return { error: 'La foto debe pesar menos de 3 MB', url: null }
+
+  const ext  = file.name.split('.').pop() ?? 'jpg'
+  const path = `avatars/${user.id}.${ext}`
+
+  const admin = createAdminClient()
+  const { error: upErr } = await admin.storage
+    .from('school-assets')
+    .upload(path, file, { upsert: true, contentType: file.type })
+
+  if (upErr) return { error: upErr.message, url: null }
+  const { data } = admin.storage.from('school-assets').getPublicUrl(path)
+  return { error: null, url: data.publicUrl }
 }
 
 // ─── Recuperar contraseña ─────────────────────────────────────────────────────

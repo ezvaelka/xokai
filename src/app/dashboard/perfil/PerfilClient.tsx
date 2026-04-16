@@ -13,8 +13,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input }  from '@/components/ui/input'
 import { Label }  from '@/components/ui/label'
-import { updateProfile, updatePassword, signOutAll } from '@/app/actions/auth'
-import { supabase } from '@/lib/supabase/client'
+import { updateProfile, updatePassword, signOutAll, uploadAvatar } from '@/app/actions/auth'
 
 // ─── Schemas ─────────────────────────────────────────────────────────────────
 
@@ -92,25 +91,17 @@ export default function PerfilClient({
   async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
-    if (file.size > 3 * 1024 * 1024) {
-      toast.error('La foto debe pesar menos de 3 MB')
-      return
-    }
     setUploading(true)
     try {
-      const ext  = file.name.split('.').pop()
-      const path = `avatars/${userId}.${ext}`
-      const { error: upErr } = await supabase.storage
-        .from('school-assets')
-        .upload(path, file, { upsert: true })
-      if (upErr) throw upErr
-      const { data } = supabase.storage.from('school-assets').getPublicUrl(path)
-      setAvatarUrl(data.publicUrl)
-      // Guardar también en profile
+      const fd = new FormData()
+      fd.append('file', file)
+      const { error, url } = await uploadAvatar(fd)
+      if (error) { toast.error(error); return }
+      setAvatarUrl(url)
       await updateProfile({
         first_name: profileForm.getValues('first_name'),
         last_name:  profileForm.getValues('last_name'),
-        avatar_url: data.publicUrl,
+        avatar_url: url ?? undefined,
       })
       toast.success('Foto actualizada')
     } catch {
