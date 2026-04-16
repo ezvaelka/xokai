@@ -31,7 +31,7 @@ export const NAV_ITEMS = [
     label: 'Dashboard',
     href:  '/dashboard',
     exact: true,
-    roles: ['admin', 'sysadmin'],
+    roles: ['admin', 'director', 'sysadmin', 'coordinador', 'finanzas'],
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
         strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -45,7 +45,7 @@ export const NAV_ITEMS = [
   {
     label: 'Alumnos',
     href:  '/dashboard/alumnos',
-    roles: ['admin', 'sysadmin'],
+    roles: ['admin', 'director', 'sysadmin', 'coordinador'],
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
         strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -59,7 +59,7 @@ export const NAV_ITEMS = [
   {
     label: 'Grupos',
     href:  '/dashboard/grupos',
-    roles: ['admin', 'sysadmin', 'teacher'],
+    roles: ['admin', 'director', 'sysadmin', 'coordinador', 'maestro', 'teacher'],
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
         strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -70,7 +70,7 @@ export const NAV_ITEMS = [
   {
     label: 'Comunicados',
     href:  '/dashboard/comunicados',
-    roles: ['admin', 'sysadmin', 'teacher'],
+    roles: ['admin', 'director', 'sysadmin', 'coordinador', 'maestro', 'teacher'],
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
         strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -81,7 +81,7 @@ export const NAV_ITEMS = [
   {
     label: 'Pagos',
     href:  '/dashboard/pagos',
-    roles: ['admin', 'sysadmin'],
+    roles: ['admin', 'director', 'sysadmin', 'finanzas'],
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
         strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -93,7 +93,7 @@ export const NAV_ITEMS = [
   {
     label: 'Documentos',
     href:  '/dashboard/documentos',
-    roles: ['admin', 'sysadmin'],
+    roles: ['admin', 'director', 'sysadmin'],
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
         strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -107,7 +107,7 @@ export const NAV_ITEMS = [
   {
     label: 'Pickup 🚦',
     href:  '/dashboard/pickup',
-    roles: ['admin', 'sysadmin', 'portero'],
+    roles: ['admin', 'director', 'sysadmin', 'portero'],
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
         strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -119,7 +119,7 @@ export const NAV_ITEMS = [
   {
     label: 'Usuarios',
     href:  '/dashboard/configuracion/usuarios',
-    roles: ['admin', 'sysadmin'],
+    roles: ['admin', 'director', 'sysadmin'],
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
         strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

@@ -39,7 +39,7 @@ interface Props {
 
 const inviteSchema = z.object({
   email: z.string().email('Correo inválido'),
-  role:  z.enum(['admin', 'teacher', 'portero']),
+  role:  z.enum(['director', 'coordinador', 'maestro', 'portero', 'finanzas']),
 })
 type InviteForm = z.infer<typeof inviteSchema>
 
@@ -48,10 +48,14 @@ type InviteForm = z.infer<typeof inviteSchema>
 const INVITE_EXPIRY_DAYS = 7
 
 const ROLE_LABELS: Record<string, { label: string; color: string; bg: string }> = {
-  admin:    { label: 'Administrador', color: '#6D4AE8', bg: '#EDE9FE' },
-  teacher:  { label: 'Maestro',       color: '#D97706', bg: '#FEF3C7' },
-  portero:  { label: 'Portero',       color: '#6B6760', bg: '#EFEDE8' },
-  sysadmin: { label: 'Sysadmin',      color: '#4C1D95', bg: '#EDE9FE' },
+  sysadmin:    { label: 'Sysadmin',     color: '#4C1D95', bg: '#EDE9FE' },
+  admin:       { label: 'Director',     color: '#6D4AE8', bg: '#EDE9FE' },  // backward compat
+  director:    { label: 'Director',     color: '#6D4AE8', bg: '#EDE9FE' },
+  coordinador: { label: 'Coordinador',  color: '#0369A1', bg: '#E0F2FE' },
+  maestro:     { label: 'Maestro',      color: '#D97706', bg: '#FEF3C7' },
+  teacher:     { label: 'Maestro',      color: '#D97706', bg: '#FEF3C7' },  // backward compat
+  portero:     { label: 'Portero',      color: '#6B6760', bg: '#EFEDE8' },
+  finanzas:    { label: 'Finanzas',     color: '#059669', bg: '#D1FAE5' },
 }
 
 function RoleBadge({ role }: { role: string }) {
@@ -435,9 +439,11 @@ export default function UsuariosClient({ initialUsers, initialPending, currentUs
                     className="mt-1.5 flex h-9 w-full rounded-xl border border-xk-border bg-xk-card px-3 py-2 text-sm text-xk-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-xk-accent"
                   >
                     <option value="">Seleccionar rol…</option>
-                    <option value="admin">Administrador — acceso total</option>
-                    <option value="teacher">Maestro — grupos y comunicados</option>
+                    <option value="director">Director — acceso total a la escuela</option>
+                    <option value="coordinador">Coordinador — grupos, alumnos y comunicados</option>
+                    <option value="maestro">Maestro — sus grupos y comunicados</option>
                     <option value="portero">Portero — solo pickup</option>
+                    <option value="finanzas">Finanzas — solo módulo de pagos</option>
                   </select>
                   {errors.role && (
                     <p className="text-red-600 text-xs mt-1">{errors.role.message}</p>

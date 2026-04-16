@@ -1,7 +1,10 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-// ─── Rutas ───────────────────────────────────────────────────────────────────
+// ─── Roles ───────────────────────────────────────────────────────────────────
+
+/** Roles con acceso total a la escuela */
+const DIRECTOR_ROLES  = ['admin', 'director', 'sysadmin'] as const
 
 /** Rutas accesibles sin autenticación */
 const PUBLIC_PATHS = [
@@ -11,23 +14,27 @@ const PUBLIC_PATHS = [
   '/invite/accept',
 ]
 
-/** Rutas que requieren auth pero tienen lógica especial (sin perfil completo OK) */
+/** Rutas que requieren auth pero sin perfil completo OK */
 const SETUP_PATHS = ['/invite/accept', '/onboarding']
 
-/** Rutas a las que solo puede acceder un maestro en el dashboard */
-const TEACHER_PATHS = [
-  '/dashboard/grupos',
-  '/dashboard/comunicados',
-  '/dashboard/perfil',
-]
+/** Rutas permitidas por rol (allowlist) */
+const ALLOWED: Record<string, string[]> = {
+  maestro:     ['/dashboard/grupos', '/dashboard/comunicados', '/dashboard/perfil'],
+  teacher:     ['/dashboard/grupos', '/dashboard/comunicados', '/dashboard/perfil'],
+  portero:     ['/dashboard/pickup', '/dashboard/perfil'],
+  coordinador: ['/dashboard', '/dashboard/alumnos', '/dashboard/grupos', '/dashboard/comunicados', '/dashboard/perfil'],
+  finanzas:    ['/dashboard', '/dashboard/pagos', '/dashboard/perfil'],
+}
 
-/** Rutas a las que solo puede acceder un portero en el dashboard */
-const PORTERO_PATHS = [
-  '/dashboard/pickup',
-  '/dashboard/perfil',
-]
+/** Ruta de aterrizaje por rol */
+const DEFAULT_ROUTE: Record<string, string> = {
+  maestro:     '/dashboard/grupos',
+  teacher:     '/dashboard/grupos',
+  portero:     '/dashboard/pickup',
+  coordinador: '/dashboard',
+  finanzas:    '/dashboard/pagos',
+}
 
-/** Prefijos estáticos — excluir siempre */
 const STATIC_PREFIXES = ['/_next/', '/favicon.ico', '/icons/', '/images/']
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
@@ -35,7 +42,6 @@ const STATIC_PREFIXES = ['/_next/', '/favicon.ico', '/icons/', '/images/']
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Ignorar assets estáticos
   if (STATIC_PREFIXES.some((p) => pathname.startsWith(p))) {
     return NextResponse.next()
   }
@@ -57,38 +63,35 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Obtener usuario (verifica el JWT, no confiar solo en cookie)
   const { data: { user } } = await supabase.auth.getUser()
 
-  const isPublicPath  = PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))
-  const isSetupPath   = SETUP_PATHS.some((p)  => pathname === p || pathname.startsWith(`${p}/`))
-  const isDashboard   = pathname.startsWith('/dashboard')
-  const isOnboarding  = pathname.startsWith('/onboarding')
+  const isPublicPath   = PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))
+  const isSetupPath    = SETUP_PATHS.some((p)  => pathname === p || pathname.startsWith(`${p}/`))
+  const isDashboard    = pathname.startsWith('/dashboard')
+  const isOnboarding   = pathname.startsWith('/onboarding')
+  const isInviteAccept = pathname.startsWith('/invite/accept')
 
-  // ── Usuario NO autenticado ──────────────────────────────────────────────────
+  // ── Sin autenticación ───────────────────────────────────────────────────────
 
   if (!user) {
-    // Bloquear dashboard y rutas de setup
     if (isDashboard || (isSetupPath && !isPublicPath)) {
       const loginUrl = new URL('/login', request.url)
       loginUrl.searchParams.set('redirect', pathname)
       return NextResponse.redirect(loginUrl)
     }
-    // Raíz → login
     if (pathname === '/') {
       return NextResponse.redirect(new URL('/login', request.url))
     }
     return response
   }
 
-  // ── Usuario autenticado en página pública (login, forgot-password) ──────────
-  // Excepción: invite/accept y reset-password siempre accesibles para completar el flujo
+  // ── Autenticado en ruta pública (login, forgot-password) ───────────────────
 
   if (isPublicPath && !isSetupPath && pathname !== '/reset-password') {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
-  // ── Usuario autenticado: verificar perfil y rol ─────────────────────────────
+  // ── Verificar perfil y rol ──────────────────────────────────────────────────
 
   if (isDashboard || isOnboarding || isSetupPath) {
     const { data: profile } = await supabase
@@ -97,43 +100,33 @@ export async function middleware(request: NextRequest) {
       .eq('id', user.id)
       .single()
 
-    // Sin perfil → onboarding (el admin aún no configuró su escuela)
-    // Nota: /invite/accept solo se alcanza via link de email, no desde aquí
-    if (!profile && !isOnboarding && !pathname.startsWith('/invite/accept')) {
+    if (!profile && !isOnboarding && !isInviteAccept) {
+      // Usuario invitado que no completó el form → volver a /invite/accept
+      const metadata = (user.user_metadata ?? {}) as Record<string, string>
+      if (metadata.invited_by) {
+        return NextResponse.redirect(new URL('/invite/accept', request.url))
+      }
+      // Admin nuevo sin escuela → onboarding
       return NextResponse.redirect(new URL('/onboarding', request.url))
     }
 
-    // Con perfil pero sin escuela (y no sysadmin) → onboarding
-    if (
-      profile &&
-      !profile.school_id &&
-      profile.role !== 'sysadmin' &&
-      !isOnboarding
-    ) {
+    if (profile && !profile.school_id && profile.role !== 'sysadmin' && !isOnboarding) {
       return NextResponse.redirect(new URL('/onboarding', request.url))
     }
 
-    // Routing por rol (solo en rutas de dashboard)
     if (profile && isDashboard) {
       const role = profile.role
 
-      if (role === 'teacher') {
-        const allowed = TEACHER_PATHS.some((p) => pathname.startsWith(p))
+      // Director / admin / sysadmin → acceso total, sin restricción
+      if (!DIRECTOR_ROLES.includes(role as any) && ALLOWED[role]) {
+        const allowed = ALLOWED[role].some((p) => pathname === p || pathname.startsWith(`${p}/`))
         if (!allowed) {
-          return NextResponse.redirect(new URL('/dashboard/grupos', request.url))
-        }
-      }
-
-      if (role === 'portero') {
-        const allowed = PORTERO_PATHS.some((p) => pathname.startsWith(p))
-        if (!allowed) {
-          return NextResponse.redirect(new URL('/dashboard/pickup', request.url))
+          return NextResponse.redirect(new URL(DEFAULT_ROUTE[role] ?? '/dashboard', request.url))
         }
       }
     }
   }
 
-  // Raíz autenticada → dashboard
   if (pathname === '/') {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }

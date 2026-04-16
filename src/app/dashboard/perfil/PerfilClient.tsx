@@ -43,11 +43,15 @@ type PasswordForm = z.infer<typeof passwordSchema>
 // ─── Etiquetas de rol ─────────────────────────────────────────────────────────
 
 const ROLE_LABELS: Record<string, string> = {
-  admin:    'Administrador',
-  teacher:  'Maestro',
-  portero:  'Portero',
-  sysadmin: 'Sysadmin',
-  guardian: 'Padre / Tutor',
+  sysadmin:    'Sysadmin',
+  admin:       'Director',      // backward compat
+  director:    'Director',
+  coordinador: 'Coordinador',
+  maestro:     'Maestro',
+  teacher:     'Maestro',       // backward compat
+  portero:     'Portero',
+  finanzas:    'Finanzas',
+  guardian:    'Padre / Tutor',
 }
 
 // ─── Componente ───────────────────────────────────────────────────────────────
@@ -97,10 +101,10 @@ export default function PerfilClient({
       const ext  = file.name.split('.').pop()
       const path = `avatars/${userId}.${ext}`
       const { error: upErr } = await supabase.storage
-        .from('user-assets')
+        .from('school-assets')
         .upload(path, file, { upsert: true })
       if (upErr) throw upErr
-      const { data } = supabase.storage.from('user-assets').getPublicUrl(path)
+      const { data } = supabase.storage.from('school-assets').getPublicUrl(path)
       setAvatarUrl(data.publicUrl)
       // Guardar también en profile
       await updateProfile({
