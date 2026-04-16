@@ -46,7 +46,10 @@ const pickupSchema = z.object({
 }).refine((d) => d.pickupInicio < d.pickupFin, { message: 'Fin debe ser posterior al inicio', path: ['pickupFin'] })
 const joinSchema = z.object({
   join_code: z.string().min(4, 'Ingresa el código').max(12),
-  role:      z.enum(['coordinador', 'maestro', 'portero', 'finanzas'], { required_error: 'Selecciona tu rol' }),
+  role:      z.string().refine(
+    (v) => ['coordinador', 'maestro', 'portero', 'finanzas'].includes(v),
+    { message: 'Selecciona tu rol' },
+  ),
 })
 
 type NameForm     = z.infer<typeof nameSchema>
