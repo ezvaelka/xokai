@@ -5,7 +5,14 @@ import DashboardShell   from '@/components/DashboardShell'
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function greeting() {
-  const h = new Date().getHours()
+  const h = parseInt(
+    new Intl.DateTimeFormat('es-MX', {
+      timeZone: 'America/Mexico_City',
+      hour:     'numeric',
+      hour12:   false,
+    }).format(new Date()),
+    10,
+  )
   if (h < 12) return 'Buenos días'
   if (h < 18) return 'Buenas tardes'
   return 'Buenas noches'
