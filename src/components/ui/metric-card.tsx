@@ -31,13 +31,13 @@ export function MetricCard({ label, value, sublabel, icon: Icon, iconTone = 'acc
   const tone = ICON_TONE[iconTone]
   const TrendIcon = delta ? TREND_TONE[delta.trend].Icon : null
   return (
-    <div className="xk-surface-elevated p-5 flex flex-col justify-between min-h-[128px]">
+    <div className="group xk-surface-elevated p-5 flex flex-col justify-between min-h-[128px] hover:-translate-y-0.5 hover:shadow-lg hover:border-xk-border transition-all duration-200 ease-out cursor-default">
       <div className="flex items-start justify-between gap-3">
         <span className="text-[11px] font-medium text-xk-text-secondary uppercase tracking-wider">
           {label}
         </span>
         {Icon && (
-          <div className={`w-8 h-8 rounded-lg ${tone.bg} flex items-center justify-center shrink-0`}>
+          <div className={`w-8 h-8 rounded-lg ${tone.bg} flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-200`}>
             <Icon className={`w-4 h-4 ${tone.fg}`} />
           </div>
         )}
@@ -45,7 +45,7 @@ export function MetricCard({ label, value, sublabel, icon: Icon, iconTone = 'acc
 
       <div className="mt-3">
         <div className="flex items-baseline gap-2.5">
-          <span className="xk-metric-number text-[34px] leading-none text-xk-text">
+          <span className="xk-metric-number text-[34px] leading-none text-xk-text group-hover:text-xk-accent transition-colors duration-200">
             {value}
           </span>
           {delta && TrendIcon && (

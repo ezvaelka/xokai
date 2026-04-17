@@ -38,7 +38,7 @@ function SchoolAvatar({ name }: { name: string }) {
     ? (words[0][0] + words[1][0]).toUpperCase()
     : name.slice(0, 2).toUpperCase()
   return (
-    <div className="w-9 h-9 rounded-lg bg-xk-accent-light flex items-center justify-center shrink-0">
+    <div className="w-9 h-9 rounded-lg bg-xk-accent-light flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-200">
       <span className="text-[11px] font-bold text-xk-accent">{letters}</span>
     </div>
   )
@@ -119,7 +119,7 @@ export default function SchoolsTable({ schools }: { schools: SchoolListItem[] })
               const days = daysAgo(s.created_at)
               return (
                 <tr key={s.id} onClick={() => router.push(`/sysadmin/schools/${s.id}`)}
-                  className="hover:bg-xk-subtle/40 cursor-pointer group transition-colors">
+                  className="hover:bg-xk-subtle/40 cursor-pointer group transition-all duration-150">
                   <td className="px-4 py-3.5">
                     <div className="flex items-center gap-3">
                       <SchoolAvatar name={s.name} />
@@ -179,7 +179,7 @@ export default function SchoolsTable({ schools }: { schools: SchoolListItem[] })
           const plan = PLAN_TONE[s.plan ?? 'trial']
           return (
             <button key={s.id} onClick={() => router.push(`/sysadmin/schools/${s.id}`)} className="block w-full text-left">
-              <div className="xk-surface-flat p-4 hover:shadow-sm transition-shadow">
+              <div className="xk-surface-flat p-4 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
                 {/* Top row: avatar + name + status */}
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <div className="flex items-center gap-3 min-w-0">

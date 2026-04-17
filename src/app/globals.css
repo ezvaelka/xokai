@@ -124,6 +124,7 @@ body {
   border-radius: 12px;
   box-shadow: var(--shadow-xs);
   border: 1px solid color-mix(in oklab, var(--color-xk-border) 70%, transparent);
+  transition: box-shadow 200ms ease, transform 200ms ease, border-color 200ms ease;
 }
 
 .xk-surface-elevated {
@@ -131,12 +132,14 @@ body {
   border-radius: 14px;
   box-shadow: var(--shadow-sm);
   border: 1px solid color-mix(in oklab, var(--color-xk-border) 50%, transparent);
+  transition: box-shadow 200ms ease, transform 200ms ease, border-color 200ms ease;
 }
 
 .xk-surface-flat {
   background: var(--color-xk-surface);
   border-radius: 12px;
   border: 1px solid color-mix(in oklab, var(--color-xk-border) 80%, transparent);
+  transition: box-shadow 200ms ease, transform 200ms ease, border-color 200ms ease;
 }
 
 .xk-num {
