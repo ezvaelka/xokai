@@ -4,9 +4,9 @@ import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { Users, ArrowRight, DollarSign } from 'lucide-react'
 import { StatusBadge } from '@/components/ui/status-badge'
-import type { SchoolListItem, SchoolStatus, SchoolPlan } from '@/app/actions/sysadmin'
+import type { SchoolListItem, ClassifyStatus, SchoolPlan } from '@/app/actions/sysadmin'
 
-const STATUS_TONE: Record<Exclude<SchoolStatus, 'all'>, { tone: Parameters<typeof StatusBadge>[0]['tone']; label: string }> = {
+const STATUS_TONE: Record<ClassifyStatus, { tone: Parameters<typeof StatusBadge>[0]['tone']; label: string }> = {
   active:     { tone: 'success', label: 'Activa' },
   onboarding: { tone: 'warning', label: 'Onboarding' },
   paused:     { tone: 'neutral', label: 'Pausada' },
@@ -180,7 +180,8 @@ export default function SchoolsTable({ schools }: { schools: SchoolListItem[] })
           return (
             <button key={s.id} onClick={() => router.push(`/sysadmin/schools/${s.id}`)} className="block w-full text-left">
               <div className="xk-surface-flat p-4 hover:shadow-sm transition-shadow">
-                <div className="flex items-start justify-between gap-3 mb-2.5">
+                {/* Top row: avatar + name + status */}
+                <div className="flex items-start justify-between gap-3 mb-3">
                   <div className="flex items-center gap-3 min-w-0">
                     <SchoolAvatar name={s.name} />
                     <div className="min-w-0">
@@ -190,17 +191,19 @@ export default function SchoolsTable({ schools }: { schools: SchoolListItem[] })
                   </div>
                   <StatusBadge tone={st.tone}>{st.label}</StatusBadge>
                 </div>
-                <div className="flex items-center justify-between">
+                {/* Bottom row: plan + students + mrr + ver */}
+                <div className="flex items-center justify-between pt-2.5 border-t border-xk-border/40">
                   <div className="flex items-center gap-2">
                     <StatusBadge tone={plan.tone} dot={false}>{plan.label}</StatusBadge>
                     <div className="flex items-center gap-1 text-xk-text-muted">
                       <Users className="w-3 h-3" />
                       <span className="xk-num text-xs">{s.student_count}</span>
                     </div>
+                    {s.mrr_usd > 0 && (
+                      <span className="xk-num text-xs font-medium text-emerald-700">${s.mrr_usd}/mo</span>
+                    )}
                   </div>
-                  {s.mrr_usd > 0 && (
-                    <span className="xk-num text-xs font-medium text-emerald-700">${s.mrr_usd}/mo</span>
-                  )}
+                  <span className="text-xs font-medium text-xk-accent">Ver →</span>
                 </div>
               </div>
             </button>

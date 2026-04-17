@@ -70,7 +70,7 @@ export async function completeOnboarding(data: OnboardingData) {
     .upsert({
       id:         user.id,
       school_id:  school.id,
-      role:       'director',
+      role:       'admin',
       first_name: data.first_name,
       last_name:  data.last_name,
     })
