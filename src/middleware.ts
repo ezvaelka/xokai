@@ -18,6 +18,7 @@ const ALLOWED: Record<string, string[]> = {
   portero:     ['/dashboard/pickup', '/dashboard/perfil'],
   coordinador: ['/dashboard', '/dashboard/alumnos', '/dashboard/grupos', '/dashboard/comunicados', '/dashboard/perfil'],
   finanzas:    ['/dashboard', '/dashboard/pagos', '/dashboard/perfil'],
+  guardian:    [],
 }
 
 const DEFAULT_ROUTE: Record<string, string> = {
@@ -26,6 +27,7 @@ const DEFAULT_ROUTE: Record<string, string> = {
   portero:     '/dashboard/pickup',
   coordinador: '/dashboard',
   finanzas:    '/dashboard/pagos',
+  guardian:    '/login',
 }
 
 const STATIC_PREFIXES = ['/_next/', '/favicon.ico', '/icons/', '/images/']
@@ -105,7 +107,7 @@ export async function middleware(request: NextRequest) {
     }
 
     // Redirigir sysadmin fuera del dashboard de escuela (excepto perfil)
-    if (profile && profile.role === 'sysadmin' && isDashboard && pathname !== '/dashboard/perfil') {
+    if (profile && profile.role === 'sysadmin' && isDashboard && !pathname.startsWith('/dashboard/perfil')) {
       return NextResponse.redirect(new URL('/sysadmin/schools', request.url))
     }
 
