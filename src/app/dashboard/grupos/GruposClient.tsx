@@ -5,6 +5,7 @@ import { useRouter }                from 'next/navigation'
 import { toast }                    from 'sonner'
 import { Plus, Pencil, Trash2, Users, Loader2 } from 'lucide-react'
 import { Button }                   from '@/components/ui/button'
+import { ConfirmDialog }            from '@/components/ConfirmDialog'
 import GroupForm                    from './GroupForm'
 import { deleteGroup, type GroupItem } from '@/app/actions/groups'
 
@@ -21,9 +22,7 @@ export default function GruposClient({ groups }: { groups: GroupItem[] }) {
     setShowForm(true)
   }
 
-  function handleDelete(g: GroupItem, e: React.MouseEvent) {
-    e.stopPropagation()
-    if (!confirm(`¿Eliminar el grupo "${g.name}"? Esta acción no se puede deshacer.`)) return
+  function handleDelete(g: GroupItem) {
     setDeletingId(g.id)
     start(async () => {
       const res = await deleteGroup(g.id)
@@ -84,23 +83,31 @@ export default function GruposClient({ groups }: { groups: GroupItem[] }) {
                     {g.grade ?? g.name.slice(0, 2).toUpperCase()}
                   </span>
                 </div>
-                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
                   <button
                     onClick={(e) => handleEdit(g, e)}
                     className="p-1.5 rounded-lg hover:bg-xk-subtle transition-colors"
                   >
                     <Pencil size={13} className="text-xk-text-muted" />
                   </button>
-                  <button
-                    onClick={(e) => handleDelete(g, e)}
-                    disabled={deletingId === g.id || pending}
-                    className="p-1.5 rounded-lg hover:bg-red-50 transition-colors"
-                  >
-                    {deletingId === g.id
-                      ? <Loader2 size={13} className="animate-spin text-red-500" />
-                      : <Trash2 size={13} className="text-red-400" />
+                  <ConfirmDialog
+                    trigger={
+                      <button
+                        disabled={deletingId === g.id || pending}
+                        className="p-1.5 rounded-lg hover:bg-red-50 transition-colors"
+                      >
+                        {deletingId === g.id
+                          ? <Loader2 size={13} className="animate-spin text-red-500" />
+                          : <Trash2 size={13} className="text-red-400" />
+                        }
+                      </button>
                     }
-                  </button>
+                    title={`¿Eliminar "${g.name}"?`}
+                    description="Esta acción no se puede deshacer. El grupo y toda su configuración serán eliminados."
+                    confirmLabel="Sí, eliminar"
+                    destructive
+                    onConfirm={() => handleDelete(g)}
+                  />
                 </div>
               </div>
 

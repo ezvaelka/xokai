@@ -3,8 +3,9 @@
 import { useState, useTransition, useMemo } from 'react'
 import { useRouter }                         from 'next/navigation'
 import { toast }                             from 'sonner'
-import { Plus, Search, UserX, Pencil, Loader2 } from 'lucide-react'
+import { Plus, Search, UserX, Loader2 } from 'lucide-react'
 import { Button }                            from '@/components/ui/button'
+import { ConfirmDialog }                     from '@/components/ConfirmDialog'
 import StudentForm                           from './StudentForm'
 import { deactivateStudent, type StudentItem } from '@/app/actions/students'
 import type { GroupItem }                    from '@/app/actions/groups'
@@ -35,9 +36,7 @@ export default function AlumnosClient({ students, groups }: Props) {
     })
   }, [students, search, filterGroup, filterActive])
 
-  function handleDeactivate(s: StudentItem, e: React.MouseEvent) {
-    e.stopPropagation()
-    if (!confirm(`¿Dar de baja a ${s.first_name} ${s.last_name}? El alumno quedará inactivo.`)) return
+  function handleDeactivate(s: StudentItem) {
     setDeacId(s.id)
     start(async () => {
       const res = await deactivateStudent(s.id)
@@ -155,19 +154,27 @@ export default function AlumnosClient({ students, groups }: Props) {
                         {s.active ? 'Activo' : 'Inactivo'}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                       {s.active && (
-                        <button
-                          onClick={(e) => handleDeactivate(s, e)}
-                          disabled={deactivatingId === s.id || pending}
-                          className="p-1.5 rounded-lg hover:bg-red-50 transition-colors"
-                          title="Dar de baja"
-                        >
-                          {deactivatingId === s.id
-                            ? <Loader2 size={13} className="animate-spin text-red-400" />
-                            : <UserX size={13} className="text-red-400" />
+                        <ConfirmDialog
+                          trigger={
+                            <button
+                              disabled={deactivatingId === s.id || pending}
+                              className="p-1.5 rounded-lg hover:bg-red-50 transition-colors"
+                              title="Dar de baja"
+                            >
+                              {deactivatingId === s.id
+                                ? <Loader2 size={13} className="animate-spin text-red-400" />
+                                : <UserX size={13} className="text-red-400" />
+                              }
+                            </button>
                           }
-                        </button>
+                          title="¿Dar de baja al alumno?"
+                          description={`${s.first_name} ${s.last_name} quedará inactivo. Puedes reactivarlo más adelante.`}
+                          confirmLabel="Sí, dar de baja"
+                          destructive
+                          onConfirm={() => handleDeactivate(s)}
+                        />
                       )}
                     </td>
                   </tr>

@@ -49,31 +49,27 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-xk-bg px-4 py-12">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-xk-accent-light/30 px-4">
+      <div className="w-full max-w-[400px]">
 
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-xk-accent mb-4 shadow-lg">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff"
-              strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-              <polyline points="9 22 9 12 15 12 15 22"/>
-            </svg>
+        <div className="bg-white rounded-2xl border border-xk-border shadow-lg p-8">
+
+          {/* Logo inline */}
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-xl bg-xk-accent flex items-center justify-center shrink-0">
+              <span className="font-heading font-bold text-white text-lg leading-none">X</span>
+            </div>
+            <span className="font-heading font-bold text-xk-text text-xl">Xokai</span>
           </div>
-          <h1 className="font-heading text-4xl font-bold text-xk-accent tracking-tight">Xokai</h1>
-        </div>
-
-        <div className="bg-xk-card rounded-2xl border border-xk-border shadow-sm p-8">
 
           {!done ? (
             <>
-              <div className="mb-6">
-                <h2 className="text-xl font-semibold text-xk-text">Nueva contraseña</h2>
-                <p className="text-sm text-xk-text-secondary mt-1">
-                  Crea una contraseña segura para tu cuenta Xokai.
-                </p>
-              </div>
+              <h1 className="font-heading text-2xl font-bold text-xk-text mb-1">
+                Nueva contraseña
+              </h1>
+              <p className="text-sm text-xk-text-muted mb-6">
+                Crea una contraseña segura para tu cuenta Xokai.
+              </p>
 
               <form onSubmit={handleSubmit(onSubmit)} noValidate>
 
@@ -110,6 +106,7 @@ export default function ResetPasswordPage() {
                     {errors.password && (
                       <p className="text-red-600 text-xs mt-1">{errors.password.message}</p>
                     )}
+                    <p className="text-xs text-xk-text-muted mt-1">Mínimo 8 caracteres, una mayúscula y un número</p>
                   </div>
 
                   <div>
@@ -140,20 +137,13 @@ export default function ResetPasswordPage() {
 
                 </div>
 
-                {/* Requisitos */}
-                <ul className="mt-3 space-y-1 text-xs text-xk-text-muted">
-                  <li>· Mínimo 8 caracteres</li>
-                  <li>· Al menos una letra mayúscula</li>
-                  <li>· Al menos un número</li>
-                </ul>
-
                 <Button
                   type="submit"
-                  className="w-full mt-6 h-11"
+                  className="w-full mt-6 h-10 bg-xk-accent hover:bg-xk-accent-dark text-white rounded-lg font-medium"
                   disabled={isSubmitting}
                 >
                   {isSubmitting && <Loader2 size={16} className="animate-spin" />}
-                  {isSubmitting ? 'Guardando…' : 'Guardar contraseña'}
+                  {isSubmitting ? 'Actualizando…' : 'Actualizar contraseña'}
                 </Button>
 
               </form>
@@ -163,9 +153,9 @@ export default function ResetPasswordPage() {
               <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-xk-accent-light mb-4">
                 <CheckCircle2 size={28} className="text-xk-accent" />
               </div>
-              <h3 className="font-semibold text-xk-text text-base mb-2">
+              <h2 className="font-heading text-2xl font-bold text-xk-text mb-2">
                 ¡Contraseña actualizada!
-              </h3>
+              </h2>
               <p className="text-sm text-xk-text-secondary">
                 Redirigiendo al dashboard…
               </p>
