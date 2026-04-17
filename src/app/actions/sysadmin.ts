@@ -669,6 +669,20 @@ async function logActivityInternal(
   } catch { /* best-effort */ }
 }
 
+// ─── getSchoolsForSearch ──────────────────────────────────────────────────────
+
+export async function getSchoolsForSearch(): Promise<Array<{ id: string; name: string; city: string | null }>> {
+  await requireSysadmin()
+  const admin = createAdminClient()
+  const { data } = await admin
+    .from('schools')
+    .select('id, name, city')
+    .eq('active', true)
+    .order('name')
+    .limit(50)
+  return data ?? []
+}
+
 // ─── addSchoolNote ────────────────────────────────────────────────────────────
 
 export async function addSchoolNote(schoolId: string, note: string): Promise<{ error: string | null }> {

@@ -1,6 +1,4 @@
-import Link              from 'next/link'
 import { notFound }      from 'next/navigation'
-import { ArrowLeft }     from 'lucide-react'
 import { getSchoolDetail, getSchoolNotes, getActivityLog } from '@/app/actions/sysadmin'
 import SchoolDetailClient from './SchoolDetailClient'
 
@@ -28,13 +26,6 @@ export default async function SchoolDetailPage({
 
   return (
     <div className="max-w-4xl mx-auto">
-      <Link
-        href="/sysadmin/schools"
-        className="inline-flex items-center gap-1.5 text-sm text-xk-text-secondary hover:text-xk-text mb-5"
-      >
-        <ArrowLeft className="w-4 h-4" /> Escuelas
-      </Link>
-
       <SchoolDetailClient
         detail={detail!}
         notes={notes!}

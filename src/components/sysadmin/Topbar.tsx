@@ -1,9 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Search, LogOut } from 'lucide-react'
+import { Search, LogOut, ArrowLeft } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
+import Link from 'next/link'
 import MobileNav from '@/components/MobileNav'
 import { cn } from '@/lib/utils'
 
@@ -14,6 +15,7 @@ type Props = {
 
 export default function Topbar({ items, onOpenCommand }: Props) {
   const router = useRouter()
+  const pathname = usePathname()
   const [mac, setMac] = useState(true)
 
   useEffect(() => {
@@ -28,14 +30,29 @@ export default function Topbar({ items, onOpenCommand }: Props) {
     router.refresh()
   }
 
+  const isSchoolDetail =
+    pathname.startsWith('/sysadmin/schools/') &&
+    pathname !== '/sysadmin/schools/new'
+
   return (
     <header className="h-[60px] shrink-0 bg-xk-surface/80 backdrop-blur-sm border-b border-xk-border/60 flex items-center justify-between px-4 lg:px-5 z-10">
-      {/* Left: mobile nav + breadcrumb slot */}
+      {/* Left: back button (on detail pages) + mobile nav + breadcrumb slot */}
       <div className="flex items-center gap-2 min-w-0">
+        {isSchoolDetail && (
+          <Link
+            href="/sysadmin/schools"
+            className="flex items-center gap-1 text-sm text-xk-text-secondary hover:text-xk-text p-1.5 rounded-lg hover:bg-xk-subtle transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span className="hidden sm:inline text-xs">Escuelas</span>
+          </Link>
+        )}
         <div className="lg:hidden">
           <MobileNav items={items} schoolName="Sysadmin" />
         </div>
-        <span className="lg:hidden font-heading text-base font-bold text-xk-text">Xokai</span>
+        {!isSchoolDetail && (
+          <span className="lg:hidden font-heading text-base font-bold text-xk-text">Xokai</span>
+        )}
       </div>
 
       {/* Center: search/command palette trigger */}

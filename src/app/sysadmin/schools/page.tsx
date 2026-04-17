@@ -1,4 +1,3 @@
-import { Suspense }                       from 'react'
 import Link                               from 'next/link'
 import { Plus }                           from 'lucide-react'
 import { listSchools, type SchoolStatus } from '@/app/actions/sysadmin'
@@ -15,14 +14,6 @@ function parseCity(value: string | string[] | undefined): string {
   const v = Array.isArray(value) ? value[0] : value
   return v ?? ''
 }
-
-const STATUS_PILLS = [
-  { value: 'all',        label: 'Todas',       active: 'bg-xk-accent text-white',  inactive: 'bg-xk-surface text-xk-text-secondary hover:bg-xk-subtle border-xk-border/50' },
-  { value: 'active',     label: 'Activas',     active: 'bg-emerald-600 text-white', inactive: 'bg-xk-surface text-xk-text-secondary hover:bg-xk-subtle border-xk-border/50' },
-  { value: 'pending',    label: 'Por aprobar', active: 'bg-orange-600 text-white',  inactive: 'bg-orange-50 text-orange-700 hover:bg-orange-100 border-orange-200' },
-  { value: 'onboarding', label: 'Onboarding',  active: 'bg-amber-600 text-white',   inactive: 'bg-xk-surface text-xk-text-secondary hover:bg-xk-subtle border-xk-border/50' },
-  { value: 'paused',     label: 'Pausadas',    active: 'bg-zinc-600 text-white',    inactive: 'bg-xk-surface text-xk-text-secondary hover:bg-xk-subtle border-xk-border/50' },
-] as const
 
 export default async function SysadminSchoolsPage({
   searchParams,
@@ -66,29 +57,12 @@ export default async function SysadminSchoolsPage({
         </Link>
       </div>
 
-      <div className="flex flex-wrap gap-1.5">
-        {STATUS_PILLS.map((pill) => {
-          const count    = pill.value === 'all' ? all.length : counts[pill.value as keyof typeof counts]
-          const isActive = status === pill.value
-          return (
-            <Link key={pill.value}
-              href={`/sysadmin/schools${pill.value !== 'all' ? `?status=${pill.value}` : ''}`}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border ${isActive ? `${pill.active} border-transparent` : pill.inactive}`}
-            >
-              {pill.label}
-              <span className={`inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-md text-[10px] font-bold ${isActive ? 'bg-white/20' : 'bg-xk-subtle text-xk-text-muted'}`}>
-                {count}
-              </span>
-            </Link>
-          )
-        })}
-      </div>
-
-      {cities.length > 0 && (
-        <Suspense>
-          <SchoolsFilters currentStatus={status} currentCity={currentCity} cities={cities} />
-        </Suspense>
-      )}
+      <SchoolsFilters
+        currentStatus={status}
+        currentCity={currentCity}
+        cities={cities}
+        counts={{ all: all.length, ...counts }}
+      />
 
       {schools.length === 0 ? (
         <div className="xk-surface-elevated p-12 text-center xk-grid-bg">
