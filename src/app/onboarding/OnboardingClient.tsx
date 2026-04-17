@@ -9,7 +9,7 @@ import { toast }             from 'sonner'
 import {
   Loader2, Building2, FileText, Clock, CheckCircle2,
   ChevronRight, ChevronLeft, Upload, X, AlertCircle,
-  ArrowRight, Users, GraduationCap, User, MapPin, Key,
+  ArrowRight, Users, User, MapPin, Key,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input }  from '@/components/ui/input'
@@ -181,27 +181,25 @@ export default function OnboardingClient({ userEmail, initialType }: Props) {
 
   function Stepper() {
     const steps = userType === 'staff' ? STAFF_STEPS : DIRECTOR_STEPS
+    const currentIndex = steps.findIndex((s) => s.id === step)
+    const progress = steps.length > 1 ? Math.round((currentIndex / (steps.length - 1)) * 100) : 100
+    const currentStep = steps[currentIndex]
     return (
-      <div className="flex items-center mb-10">
-        {steps.map((s, i) => {
-          const done = step > s.id, current = step === s.id
-          return (
-            <div key={s.id} className="flex items-center flex-1 last:flex-none">
-              <div className="flex flex-col items-center gap-1">
-                <div className={['w-10 h-10 rounded-full flex items-center justify-center transition-all',
-                  done ? 'bg-xk-accent text-white' : current ? 'bg-xk-accent text-white ring-4 ring-xk-accent-light' : 'bg-xk-subtle text-xk-text-muted'].join(' ')}>
-                  {done ? <CheckCircle2 size={18} /> : <s.Icon size={18} />}
-                </div>
-                <span className={['text-xs font-medium hidden sm:block', current ? 'text-xk-accent' : done ? 'text-xk-text-secondary' : 'text-xk-text-muted'].join(' ')}>
-                  {s.label}
-                </span>
-              </div>
-              {i < steps.length - 1 && (
-                <div className={['h-0.5 flex-1 mx-2 transition-colors', step > s.id ? 'bg-xk-accent' : 'bg-xk-border'].join(' ')} />
-              )}
-            </div>
-          )
-        })}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs font-medium text-xk-text-muted">
+            Paso {currentIndex + 1} de {steps.length}
+          </span>
+          <span className="text-xs font-semibold text-xk-accent">
+            {currentStep?.label}
+          </span>
+        </div>
+        <div className="h-1.5 w-full bg-xk-subtle rounded-full overflow-hidden">
+          <div
+            className="h-full bg-xk-accent rounded-full transition-all duration-300"
+            style={{ width: `${Math.max(progress, 8)}%` }}
+          />
+        </div>
       </div>
     )
   }
@@ -209,20 +207,25 @@ export default function OnboardingClient({ userEmail, initialType }: Props) {
   // ─── Staff success ─────────────────────────────────────────────────────────
 
   if (staffDone) return (
-    <div className="min-h-screen bg-xk-bg flex flex-col">
-      <Header subtitle="¡Ya eres parte del equipo!" />
-      <div className="flex-1 flex items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md">
+    <div className="min-h-screen bg-xk-accent-light/20 flex items-center justify-center py-8 px-4">
+      <div className="w-full max-w-[440px]">
+        <div className="flex items-center gap-3 mb-6 justify-center">
+          <div className="w-9 h-9 rounded-xl bg-xk-accent flex items-center justify-center shrink-0">
+            <span className="font-heading font-bold text-white text-base leading-none">X</span>
+          </div>
+          <span className="font-heading font-bold text-xk-text text-xl">Xokai</span>
+        </div>
+        <div className="bg-white rounded-2xl border border-xk-border shadow-lg p-8">
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-xk-accent-light mb-5 ring-8 ring-xk-accent-light/50">
-              <CheckCircle2 size={40} className="text-xk-accent" />
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-xk-accent-light mb-4">
+              <CheckCircle2 size={32} className="text-xk-accent" />
             </div>
-            <h1 className="font-heading text-3xl font-bold text-xk-text mb-3">¡Bienvenido a Xokai!</h1>
-            <p className="text-xk-text-secondary leading-relaxed">
+            <h1 className="font-heading text-2xl font-bold text-xk-text mb-2">¡Bienvenido a Xokai!</h1>
+            <p className="text-sm text-xk-text-secondary leading-relaxed">
               Tu cuenta está vinculada a la escuela. Ya puedes ver tus grupos, alumnos y comunicados desde el dashboard.
             </p>
           </div>
-          <div className="bg-xk-card border border-xk-border rounded-2xl p-4 mb-6">
+          <div className="bg-xk-subtle border border-xk-border rounded-xl p-4 mb-6">
             <p className="text-xs font-semibold text-xk-text-muted uppercase tracking-wider mb-3">Desde el dashboard puedes</p>
             <ul className="space-y-2 text-sm text-xk-text-secondary">
               <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-xk-accent shrink-0" />Ver tus grupos y alumnos asignados</li>
@@ -230,7 +233,7 @@ export default function OnboardingClient({ userEmail, initialType }: Props) {
               <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-xk-accent shrink-0" />Gestionar el módulo de pickup</li>
             </ul>
           </div>
-          <Button onClick={() => { router.push('/dashboard'); router.refresh() }} className="w-full h-11 gap-2">
+          <Button onClick={() => { router.push('/dashboard'); router.refresh() }} className="w-full h-10 gap-2 bg-xk-accent hover:bg-xk-accent-dark text-white">
             Ir al dashboard <ArrowRight size={16} />
           </Button>
         </div>
@@ -241,33 +244,49 @@ export default function OnboardingClient({ userEmail, initialType }: Props) {
   // ─── Wizard ─────────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-xk-bg flex flex-col">
-      <Header subtitle={step === 0 ? undefined : 'Configura tu cuenta'} />
-      <div className="flex-1 flex items-start justify-center py-10 px-4">
-        <div className="w-full max-w-2xl">
+    <div className="min-h-screen bg-xk-accent-light/20 py-8 px-4">
+      <div className="w-full max-w-[560px] mx-auto">
 
-          {step > 0 && <Stepper />}
+        {/* Logo en la parte superior, fuera de la card */}
+        <div className="flex items-center gap-3 mb-6 justify-center">
+          <div className="w-9 h-9 rounded-xl bg-xk-accent flex items-center justify-center shrink-0">
+            <span className="font-heading font-bold text-white text-base leading-none">X</span>
+          </div>
+          <span className="font-heading font-bold text-xk-text text-xl">Xokai</span>
+        </div>
+
+        {/* Card principal */}
+        <div className="bg-white rounded-2xl border border-xk-border shadow-lg overflow-hidden">
+
+          {/* Stepper dentro de la card — solo cuando hay pasos */}
+          {step > 0 && (
+            <div className="px-8 pt-6 pb-4 border-b border-xk-border">
+              <Stepper />
+            </div>
+          )}
+
+          <div className="p-8">
 
           {/* ── Step 0: Elegir tipo ── */}
           {step === 0 && (
-            <div className="flex flex-col items-center py-8">
-              <h2 className="font-heading text-3xl font-bold text-xk-text mb-2 text-center">¿Cómo vas a usar Xokai?</h2>
-              <p className="text-xk-text-secondary mb-10 text-center">Cuéntanos sobre ti para personalizar tu experiencia.</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 w-full">
+            <div className="flex flex-col items-center py-4">
+              <h2 className="font-heading text-2xl font-bold text-xk-text mb-2 text-center">¿Cómo vas a usar Xokai?</h2>
+              <p className="text-xk-text-secondary mb-8 text-center text-sm">Cuéntanos sobre ti para personalizar tu experiencia.</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
                 <button onClick={() => { setUserType('director'); setStep(1) }}
-                  className="group bg-xk-card border-2 border-xk-border hover:border-xk-accent rounded-2xl p-8 text-left transition-all hover:shadow-lg">
-                  <div className="w-14 h-14 rounded-2xl bg-xk-accent-light flex items-center justify-center mb-4 group-hover:bg-xk-accent transition-colors">
-                    <Building2 size={28} className="text-xk-accent group-hover:text-white transition-colors" />
+                  className="group bg-xk-subtle border-2 border-xk-border hover:border-xk-accent rounded-2xl p-6 text-left transition-all hover:shadow-md">
+                  <div className="w-12 h-12 rounded-xl bg-xk-accent-light flex items-center justify-center mb-3 group-hover:bg-xk-accent transition-colors">
+                    <Building2 size={24} className="text-xk-accent group-hover:text-white transition-colors" />
                   </div>
-                  <h3 className="font-heading text-xl font-bold text-xk-text mb-1">Soy director/a</h3>
+                  <h3 className="font-heading text-lg font-bold text-xk-text mb-1">Soy director/a</h3>
                   <p className="text-sm text-xk-text-secondary">Voy a crear y gestionar mi escuela en Xokai.</p>
                 </button>
                 <button onClick={() => { setUserType('staff'); setStep(1) }}
-                  className="group bg-xk-card border-2 border-xk-border hover:border-xk-accent rounded-2xl p-8 text-left transition-all hover:shadow-lg">
-                  <div className="w-14 h-14 rounded-2xl bg-xk-accent-light flex items-center justify-center mb-4 group-hover:bg-xk-accent transition-colors">
-                    <Users size={28} className="text-xk-accent group-hover:text-white transition-colors" />
+                  className="group bg-xk-subtle border-2 border-xk-border hover:border-xk-accent rounded-2xl p-6 text-left transition-all hover:shadow-md">
+                  <div className="w-12 h-12 rounded-xl bg-xk-accent-light flex items-center justify-center mb-3 group-hover:bg-xk-accent transition-colors">
+                    <Users size={24} className="text-xk-accent group-hover:text-white transition-colors" />
                   </div>
-                  <h3 className="font-heading text-xl font-bold text-xk-text mb-1">Me uno a una escuela</h3>
+                  <h3 className="font-heading text-lg font-bold text-xk-text mb-1">Me uno a una escuela</h3>
                   <p className="text-sm text-xk-text-secondary">Mi escuela ya está en Xokai. Tengo un código de acceso.</p>
                 </button>
               </div>
@@ -276,7 +295,7 @@ export default function OnboardingClient({ userEmail, initialType }: Props) {
 
           {/* ── Step 1: Tu nombre (ambos) ── */}
           {step === 1 && (
-            <div className="bg-xk-card rounded-2xl border border-xk-border shadow-sm p-8">
+            <>
               <h2 className="font-heading text-2xl font-bold text-xk-text mb-1">Tu nombre</h2>
               <p className="text-sm text-xk-text-secondary mb-6">Así te identificarás en la plataforma.</p>
               <form onSubmit={fName.handleSubmit((v) => { setNameData(v); setStep(2) })} noValidate>
@@ -296,15 +315,15 @@ export default function OnboardingClient({ userEmail, initialType }: Props) {
                   <Button type="button" variant="outline" onClick={() => { setStep(0); setUserType(null) }} className="gap-2">
                     <ChevronLeft size={16} /> Atrás
                   </Button>
-                  <Button type="submit" className="gap-2">Siguiente <ChevronRight size={16} /></Button>
+                  <Button type="submit" className="gap-2 bg-xk-accent hover:bg-xk-accent-dark text-white">Siguiente <ChevronRight size={16} /></Button>
                 </div>
               </form>
-            </div>
+            </>
           )}
 
           {/* ── Staff Step 2: Código + Rol ── */}
           {step === 2 && userType === 'staff' && (
-            <div className="bg-xk-card rounded-2xl border border-xk-border shadow-sm p-8">
+            <>
               <h2 className="font-heading text-2xl font-bold text-xk-text mb-1">Únete a tu escuela</h2>
               <p className="text-sm text-xk-text-secondary mb-6">Ingresa el código que te dio tu director/a.</p>
               <form onSubmit={fJoin.handleSubmit(handleJoin)} noValidate>
@@ -338,18 +357,18 @@ export default function OnboardingClient({ userEmail, initialType }: Props) {
                   <Button type="button" variant="outline" onClick={() => setStep(1)} className="gap-2">
                     <ChevronLeft size={16} /> Atrás
                   </Button>
-                  <Button type="submit" disabled={fJoin.formState.isSubmitting} className="gap-2">
+                  <Button type="submit" disabled={fJoin.formState.isSubmitting} className="gap-2 bg-xk-accent hover:bg-xk-accent-dark text-white">
                     {fJoin.formState.isSubmitting && <Loader2 size={14} className="animate-spin" />}
                     {fJoin.formState.isSubmitting ? 'Uniéndome…' : 'Unirme a la escuela'}
                   </Button>
                 </div>
               </form>
-            </div>
+            </>
           )}
 
           {/* ── Director Step 2: Nombre de la escuela ── */}
           {step === 2 && userType === 'director' && (
-            <div className="bg-xk-card rounded-2xl border border-xk-border shadow-sm p-8">
+            <>
               <h2 className="font-heading text-2xl font-bold text-xk-text mb-1">Tu escuela</h2>
               <p className="text-sm text-xk-text-secondary mb-6">¿Cómo se llama tu colegio?</p>
               <form onSubmit={fSchool.handleSubmit((v) => { setSchoolData(v); setStep(3) })} noValidate>
@@ -367,15 +386,15 @@ export default function OnboardingClient({ userEmail, initialType }: Props) {
                 </div>
                 <div className="flex items-center justify-between mt-8">
                   <Button type="button" variant="outline" onClick={() => setStep(1)} className="gap-2"><ChevronLeft size={16} /> Atrás</Button>
-                  <Button type="submit" className="gap-2">Siguiente <ChevronRight size={16} /></Button>
+                  <Button type="submit" className="gap-2 bg-xk-accent hover:bg-xk-accent-dark text-white">Siguiente <ChevronRight size={16} /></Button>
                 </div>
               </form>
-            </div>
+            </>
           )}
 
           {/* ── Director Step 3: Detalles (opcional) ── */}
           {step === 3 && userType === 'director' && (
-            <div className="bg-xk-card rounded-2xl border border-xk-border shadow-sm p-8">
+            <>
               <h2 className="font-heading text-2xl font-bold text-xk-text mb-1">Datos de contacto</h2>
               <p className="text-sm text-xk-text-secondary mb-6">Puedes completarlos ahora o más tarde desde Configuración.</p>
               <form onSubmit={fDetails.handleSubmit((v) => { setDetailsData(v); setStep(4) })} noValidate>
@@ -443,16 +462,16 @@ export default function OnboardingClient({ userEmail, initialType }: Props) {
                   <Button type="button" variant="outline" onClick={() => setStep(2)} className="gap-2"><ChevronLeft size={16} /> Atrás</Button>
                   <div className="flex gap-3">
                     <Button type="button" variant="outline" onClick={() => { setDetailsData(null); setStep(4) }}>Omitir</Button>
-                    <Button type="submit" className="gap-2">Siguiente <ChevronRight size={16} /></Button>
+                    <Button type="submit" className="gap-2 bg-xk-accent hover:bg-xk-accent-dark text-white">Siguiente <ChevronRight size={16} /></Button>
                   </div>
                 </div>
               </form>
-            </div>
+            </>
           )}
 
           {/* ── Director Step 4: Datos fiscales (opcional) ── */}
           {step === 4 && userType === 'director' && (
-            <div className="bg-xk-card rounded-2xl border border-xk-border shadow-sm p-8">
+            <>
               <h2 className="font-heading text-2xl font-bold text-xk-text mb-1">Datos fiscales</h2>
               <p className="text-sm text-xk-text-secondary mb-6">Necesarios para emitir CFDI. Puedes agregarlos después.</p>
               <form onSubmit={fFiscal.handleSubmit((v) => { setFiscalData(v); setStep(5) })} noValidate>
@@ -488,16 +507,16 @@ export default function OnboardingClient({ userEmail, initialType }: Props) {
                   <Button type="button" variant="outline" onClick={() => setStep(3)} className="gap-2"><ChevronLeft size={16} /> Atrás</Button>
                   <div className="flex gap-3">
                     <Button type="button" variant="outline" onClick={() => { setFiscalData(null); setStep(5) }}>Omitir</Button>
-                    <Button type="submit" className="gap-2">Siguiente <ChevronRight size={16} /></Button>
+                    <Button type="submit" className="gap-2 bg-xk-accent hover:bg-xk-accent-dark text-white">Siguiente <ChevronRight size={16} /></Button>
                   </div>
                 </div>
               </form>
-            </div>
+            </>
           )}
 
           {/* ── Director Step 5: Horario Pickup (opcional) ── */}
           {step === 5 && userType === 'director' && (
-            <div className="bg-xk-card rounded-2xl border border-xk-border shadow-sm p-8">
+            <>
               <h2 className="font-heading text-2xl font-bold text-xk-text mb-1">Horario de salida</h2>
               <p className="text-sm text-xk-text-secondary mb-6">Define la ventana de recogida de alumnos (módulo Pickup).</p>
               <form onSubmit={fPickup.handleSubmit((v) => { setPickupData(v); setStep(6) })} noValidate>
@@ -524,16 +543,16 @@ export default function OnboardingClient({ userEmail, initialType }: Props) {
                   <Button type="button" variant="outline" onClick={() => setStep(4)} className="gap-2"><ChevronLeft size={16} /> Atrás</Button>
                   <div className="flex gap-3">
                     <Button type="button" variant="outline" onClick={() => { setPickupData(null); setStep(6) }}>Omitir</Button>
-                    <Button type="submit" className="gap-2">Siguiente <ChevronRight size={16} /></Button>
+                    <Button type="submit" className="gap-2 bg-xk-accent hover:bg-xk-accent-dark text-white">Siguiente <ChevronRight size={16} /></Button>
                   </div>
                 </div>
               </form>
-            </div>
+            </>
           )}
 
           {/* ── Director Step 6: Confirmación ── */}
           {step === 6 && userType === 'director' && schoolData && (
-            <div className="bg-xk-card rounded-2xl border border-xk-border shadow-sm p-8">
+            <>
               <h2 className="font-heading text-2xl font-bold text-xk-text mb-1">¡Todo listo!</h2>
               <p className="text-sm text-xk-text-secondary mb-6">Revisa los datos antes de activar tu escuela.</p>
               <div className="space-y-3 mb-6">
@@ -556,36 +575,22 @@ export default function OnboardingClient({ userEmail, initialType }: Props) {
               </div>
               <div className="flex items-center justify-between mt-6">
                 <Button type="button" variant="outline" onClick={() => setStep(5)} className="gap-2"><ChevronLeft size={16} /> Atrás</Button>
-                <Button onClick={handleFinish} disabled={submitting} className="gap-2 bg-xk-accent hover:bg-xk-accent-dark">
+                <Button onClick={handleFinish} disabled={submitting} className="gap-2 bg-xk-accent hover:bg-xk-accent-dark text-white">
                   {submitting && <Loader2 size={14} className="animate-spin" />}
                   {submitting ? 'Enviando…' : 'Enviar solicitud'}
                 </Button>
               </div>
-            </div>
+            </>
           )}
 
-        </div>
-      </div>
+          </div>{/* /p-8 */}
+        </div>{/* /card */}
+      </div>{/* /max-w */}
     </div>
   )
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function Header({ subtitle }: { subtitle?: string }) {
-  return (
-    <header className="border-b border-xk-border bg-xk-card px-6 py-4 flex items-center gap-3">
-      <div className="w-8 h-8 rounded-xl bg-xk-accent flex items-center justify-center">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
-        </svg>
-      </div>
-      <span className="font-heading text-xl font-bold text-xk-accent">Xokai</span>
-      {subtitle && <span className="text-xk-text-muted text-sm">— {subtitle}</span>}
-    </header>
-  )
-}
-
 
 function Row({ label, value }: { label: string; value: string }) {
   return (

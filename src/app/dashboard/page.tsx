@@ -1,6 +1,5 @@
 import { redirect }    from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import DashboardShell   from '@/components/DashboardShell'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -21,25 +20,21 @@ function greeting() {
 // ─── Stat card ───────────────────────────────────────────────────────────────
 
 interface StatCardProps {
-  label:      string
-  value:      string
-  desc:       string
-  iconBg:     string
-  iconColor:  string
-  icon:       React.ReactNode
+  label:     string
+  value:     string
+  desc:      string
+  iconClass: string
+  icon:      React.ReactNode
 }
 
-function StatCard({ label, value, desc, iconBg, iconColor, icon }: StatCardProps) {
+function StatCard({ label, value, desc, iconClass, icon }: StatCardProps) {
   return (
     <div className="bg-xk-card rounded-2xl border border-xk-border p-5 sm:p-6 flex flex-col gap-4">
       <div className="flex items-start justify-between">
         <span className="text-xs font-semibold text-xk-text-secondary uppercase tracking-wider">
           {label}
         </span>
-        <div
-          className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-          style={{ backgroundColor: iconBg, color: iconColor }}
-        >
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${iconClass}`}>
           {icon}
         </div>
       </div>
@@ -112,10 +107,10 @@ export default async function DashboardPage() {
 
   const STATS: StatCardProps[] = [
     {
-      label: 'Total Alumnos',
-      value: '0',
-      desc:  'alumnos activos',
-      iconBg: '#EDE9FE', iconColor: '#6D4AE8',
+      label:     'Total Alumnos',
+      value:     '0',
+      desc:      'alumnos activos',
+      iconClass: 'bg-violet-100 text-violet-600',
       icon: (
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
           strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -127,10 +122,10 @@ export default async function DashboardPage() {
       ),
     },
     {
-      label: 'Pagos Pendientes',
-      value: '0',
-      desc:  'por cobrar este mes',
-      iconBg: '#FEF3C7', iconColor: '#D97706',
+      label:     'Pagos Pendientes',
+      value:     '0',
+      desc:      'por cobrar este mes',
+      iconClass: 'bg-amber-100 text-amber-600',
       icon: (
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
           strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -140,10 +135,10 @@ export default async function DashboardPage() {
       ),
     },
     {
-      label: 'Docs sin firmar',
-      value: '0',
-      desc:  'requieren firma',
-      iconBg: '#FFE4E6', iconColor: '#E11D48',
+      label:     'Docs sin firmar',
+      value:     '0',
+      desc:      'requieren firma',
+      iconClass: 'bg-red-100 text-red-600',
       icon: (
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
           strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -155,10 +150,10 @@ export default async function DashboardPage() {
       ),
     },
     {
-      label: 'Pickup activo',
-      value: 'No',
-      desc:  'semáforo apagado',
-      iconBg: '#DCFCE7', iconColor: '#16A34A',
+      label:     'Pickup activo',
+      value:     'No',
+      desc:      'semáforo apagado',
+      iconClass: 'bg-emerald-100 text-emerald-600',
       icon: (
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
           strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -170,28 +165,26 @@ export default async function DashboardPage() {
   ]
 
   return (
-    <DashboardShell activeHref="/dashboard">
-      <div className="max-w-5xl">
+    <div className="max-w-5xl">
 
-        {/* Greeting */}
-        <div className="mb-8">
-          <h1 className="font-heading text-3xl sm:text-4xl font-bold text-xk-text">
-            {greeting()}{firstName ? `, ${firstName}` : ''} 👋
-          </h1>
-          <p className="text-xk-text-secondary mt-1.5 text-sm">
-            Aquí está el resumen de hoy en {schoolName}
-          </p>
-        </div>
-
-        {/* Stats grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
-          {STATS.map(s => <StatCard key={s.label} {...s} />)}
-        </div>
-
-        {/* Activity */}
-        <ActivityTable schoolName={schoolName} />
-
+      {/* Greeting */}
+      <div className="mb-8">
+        <h1 className="font-heading text-3xl sm:text-4xl font-bold text-xk-text">
+          {greeting()}{firstName ? `, ${firstName}` : ''} 👋
+        </h1>
+        <p className="text-xk-text-secondary mt-1.5 text-sm">
+          Aquí está el resumen de hoy en {schoolName}
+        </p>
       </div>
-    </DashboardShell>
+
+      {/* Stats grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
+        {STATS.map(s => <StatCard key={s.label} {...s} />)}
+      </div>
+
+      {/* Activity */}
+      <ActivityTable schoolName={schoolName} />
+
+    </div>
   )
 }

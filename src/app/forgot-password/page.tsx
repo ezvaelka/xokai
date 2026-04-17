@@ -31,31 +31,27 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-xk-bg px-4 py-12">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-xk-accent-light/30 px-4">
+      <div className="w-full max-w-[400px]">
 
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-xk-accent mb-4 shadow-lg">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff"
-              strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-              <polyline points="9 22 9 12 15 12 15 22"/>
-            </svg>
+        <div className="bg-white rounded-2xl border border-xk-border shadow-lg p-8">
+
+          {/* Logo inline */}
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-xl bg-xk-accent flex items-center justify-center shrink-0">
+              <span className="font-heading font-bold text-white text-lg leading-none">X</span>
+            </div>
+            <span className="font-heading font-bold text-xk-text text-xl">Xokai</span>
           </div>
-          <h1 className="font-heading text-4xl font-bold text-xk-accent tracking-tight">Xokai</h1>
-        </div>
-
-        <div className="bg-xk-card rounded-2xl border border-xk-border shadow-sm p-8">
 
           {!sent ? (
             <>
-              <div className="mb-6">
-                <h2 className="text-xl font-semibold text-xk-text">Recuperar contraseña</h2>
-                <p className="text-sm text-xk-text-secondary mt-1">
-                  Ingresa tu correo y te enviaremos un enlace para crear una nueva contraseña.
-                </p>
-              </div>
+              <h1 className="font-heading text-2xl font-bold text-xk-text mb-1">
+                ¿Olvidaste tu contraseña?
+              </h1>
+              <p className="text-sm text-xk-text-muted mb-6">
+                Ingresa tu email y te enviaremos un enlace de recuperación
+              </p>
 
               <form onSubmit={handleSubmit(onSubmit)} noValidate>
 
@@ -86,39 +82,49 @@ export default function ForgotPasswordPage() {
 
                 <Button
                   type="submit"
-                  className="w-full mt-6 h-11"
+                  className="w-full mt-6 h-10 bg-xk-accent hover:bg-xk-accent-dark text-white rounded-lg font-medium"
                   disabled={isSubmitting}
                 >
                   {isSubmitting && <Loader2 size={16} className="animate-spin" />}
-                  {isSubmitting ? 'Enviando…' : 'Enviar enlace de recuperación'}
+                  {isSubmitting ? 'Enviando…' : 'Enviar instrucciones'}
                 </Button>
 
               </form>
+
+              <div className="mt-5 text-center">
+                <a href="/login"
+                  className="inline-flex items-center gap-1.5 text-sm text-xk-accent hover:text-xk-accent-dark font-medium">
+                  <ArrowLeft size={14} />
+                  Volver al inicio de sesión
+                </a>
+              </div>
             </>
           ) : (
-            <div className="text-center py-4">
-              <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-xk-accent-light mb-4">
-                <CheckCircle2 size={28} className="text-xk-accent" />
+            <>
+              <div className="text-center py-2">
+                <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-xk-accent-light mb-4">
+                  <CheckCircle2 size={28} className="text-xk-accent" />
+                </div>
+                <h2 className="font-heading text-2xl font-bold text-xk-text mb-2">Correo enviado</h2>
+                <p className="text-sm text-xk-text-secondary mb-4">
+                  Si <strong>{getValues('email')}</strong> tiene una cuenta en Xokai,
+                  recibirás un enlace para restablecer tu contraseña.
+                </p>
+                <p className="text-xs text-xk-text-muted">
+                  Revisa también tu carpeta de spam.
+                </p>
               </div>
-              <h3 className="font-semibold text-xk-text text-base mb-2">Correo enviado</h3>
-              <p className="text-sm text-xk-text-secondary mb-6">
-                Si <strong>{getValues('email')}</strong> tiene una cuenta en Xokai,
-                recibirás un enlace para restablecer tu contraseña.
-              </p>
-              <p className="text-xs text-xk-text-muted">
-                Revisa también tu carpeta de spam.
-              </p>
-            </div>
+
+              <div className="mt-6 text-center">
+                <a href="/login"
+                  className="inline-flex items-center gap-1.5 text-sm text-xk-accent hover:text-xk-accent-dark font-medium">
+                  <ArrowLeft size={14} />
+                  Volver al inicio de sesión
+                </a>
+              </div>
+            </>
           )}
 
-        </div>
-
-        <div className="mt-6 text-center">
-          <a href="/login"
-            className="inline-flex items-center gap-1.5 text-sm text-xk-accent hover:text-xk-accent-dark font-medium">
-            <ArrowLeft size={14} />
-            Volver al inicio de sesión
-          </a>
         </div>
 
       </div>

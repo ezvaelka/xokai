@@ -1,4 +1,3 @@
-import DashboardShell  from '@/components/DashboardShell'
 import { listStudents } from '@/app/actions/students'
 import { listGroups }   from '@/app/actions/groups'
 import AlumnosClient    from './AlumnosClient'
@@ -10,10 +9,8 @@ export default async function AlumnosPage() {
   ])
 
   return (
-    <DashboardShell activeHref="/dashboard/alumnos">
-      <div className="max-w-5xl mx-auto">
-        <AlumnosClient students={students} groups={groups} />
-      </div>
-    </DashboardShell>
+    <div className="max-w-5xl mx-auto">
+      <AlumnosClient students={students} groups={groups} />
+    </div>
   )
 }

@@ -106,8 +106,25 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/dashboard', request.url))
     }
 
+    // Si sysadmin está impersonando una escuela, permitir acceso al dashboard
+    const impersonCookie = request.cookies.get('xokai-impersonating')
+    if (
+      profile?.role === 'sysadmin' &&
+      isDashboard &&
+      impersonCookie &&
+      !pathname.startsWith('/dashboard/perfil')
+    ) {
+      return response
+    }
+
     // Redirigir sysadmin fuera del dashboard de escuela (excepto perfil)
-    if (profile && profile.role === 'sysadmin' && isDashboard && !pathname.startsWith('/dashboard/perfil')) {
+    if (
+      profile &&
+      profile.role === 'sysadmin' &&
+      isDashboard &&
+      !pathname.startsWith('/dashboard/perfil') &&
+      !impersonCookie
+    ) {
       return NextResponse.redirect(new URL('/sysadmin/schools', request.url))
     }
 

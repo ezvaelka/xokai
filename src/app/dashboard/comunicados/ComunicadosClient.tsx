@@ -5,6 +5,7 @@ import { useRouter }               from 'next/navigation'
 import { toast }                   from 'sonner'
 import { Plus, School, Users, Link2, Trash2, Loader2, BookOpen } from 'lucide-react'
 import { Button }                  from '@/components/ui/button'
+import { ConfirmDialog }           from '@/components/ConfirmDialog'
 import AnnouncementForm            from './AnnouncementForm'
 import { deleteAnnouncement, type AnnouncementItem } from '@/app/actions/announcements'
 import type { GroupItem }          from '@/app/actions/groups'
@@ -34,9 +35,7 @@ export default function ComunicadosClient({ announcements, groups }: Props) {
   const [deletingId, setDel] = useState<string | null>(null)
   const [pending, start]     = useTransition()
 
-  function handleDelete(a: AnnouncementItem, e: React.MouseEvent) {
-    e.stopPropagation()
-    if (!confirm(`¿Eliminar "${a.title}"?`)) return
+  function handleDelete(a: AnnouncementItem) {
     setDel(a.id)
     start(async () => {
       const res = await deleteAnnouncement(a.id)
@@ -136,17 +135,25 @@ export default function ComunicadosClient({ announcements, groups }: Props) {
                       ? `${a.read_count} lectura${a.read_count !== 1 ? 's' : ''}`
                       : 'Sin lecturas aún'}
                   </span>
-                  <button
-                    onClick={(e) => handleDelete(a, e)}
-                    disabled={deletingId === a.id || pending}
-                    className="p-1.5 rounded-lg hover:bg-red-50 transition-colors"
-                    title="Eliminar comunicado"
-                  >
-                    {deletingId === a.id
-                      ? <Loader2 size={13} className="animate-spin text-red-400" />
-                      : <Trash2 size={13} className="text-red-400" />
+                  <ConfirmDialog
+                    trigger={
+                      <button
+                        disabled={deletingId === a.id || pending}
+                        className="p-1.5 rounded-lg hover:bg-red-50 transition-colors"
+                        title="Eliminar comunicado"
+                      >
+                        {deletingId === a.id
+                          ? <Loader2 size={13} className="animate-spin text-red-400" />
+                          : <Trash2 size={13} className="text-red-400" />
+                        }
+                      </button>
                     }
-                  </button>
+                    title="¿Eliminar comunicado?"
+                    description={`"${a.title}" será eliminado para todos. Esta acción no se puede deshacer.`}
+                    confirmLabel="Sí, eliminar"
+                    destructive
+                    onConfirm={() => handleDelete(a)}
+                  />
                 </div>
               </div>
             </article>
