@@ -94,16 +94,17 @@ export async function middleware(request: NextRequest) {
       .eq('id', user.id)
       .single()
 
+    // Sysadmin paths: si no hay perfil (o perfil inválido), mandar a login — nunca a onboarding
+    if (isSysadmin && (!profile || profile.role !== 'sysadmin')) {
+      return NextResponse.redirect(new URL('/login', request.url))
+    }
+
     if (!profile && !isOnboarding) {
       return NextResponse.redirect(new URL('/onboarding', request.url))
     }
 
     if (profile && !profile.school_id && profile.role !== 'sysadmin' && !isOnboarding) {
       return NextResponse.redirect(new URL('/onboarding', request.url))
-    }
-
-    if (profile && isSysadmin && profile.role !== 'sysadmin') {
-      return NextResponse.redirect(new URL('/dashboard', request.url))
     }
 
     // Si sysadmin está impersonando una escuela, permitir acceso al dashboard
