@@ -9,7 +9,7 @@ import { toast }             from 'sonner'
 import {
   Loader2, Building2, FileText, Clock, CheckCircle2,
   ChevronRight, ChevronLeft, Upload, X, AlertCircle,
-  ArrowRight, Users, GraduationCap, User, MapPin,
+  ArrowRight, Users, GraduationCap, User, MapPin, Key,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input }  from '@/components/ui/input'
