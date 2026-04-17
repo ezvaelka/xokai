@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Xokai — CEO Report · 17 Abr 2026</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: #F0EFFE;
+      color: #1C1917;
+      padding: 40px 24px 80px;
+      min-height: 100vh;
+    }
+
+    .container { max-width: 860px; margin: 0 auto; }
+
+    .header {
+      background: linear-gradient(135deg, #6D4AE8 0%, #9B72F5 100%);
+      border-radius: 20px;
+      padding: 36px 40px;
+      color: #fff;
+      margin-bottom: 32px;
+      position: relative;
+      overflow: hidden;
+    }
+    .header::before {
+      content: '';
+      position: absolute;
+      top: -40px; right: -40px;
+      width: 200px; height: 200px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 50%;
+    }
+    .header-tag {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.7);
+      margin-bottom: 10px;
+    }
+    .header h1 {
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      line-height: 1.1;
+    }
+    .header-sub {
+      margin-top: 8px;
+      font-size: 14px;
+      color: rgba(255,255,255,0.75);
+    }
+    .header-meta {
+      margin-top: 20px;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .meta-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.85);
+      background: rgba(255,255,255,0.12);
+      padding: 4px 12px;
+      border-radius: 20px;
+    }
+    .meta-alert {
+      background: rgba(239,68,68,0.25);
+      color: #FCA5A5;
+    }
+
+    .section {
+      background: #fff;
+      border: 1px solid #EDE9FE;
+      border-radius: 18px;
+      padding: 28px 32px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(109,74,232,0.06);
+    }
+    .section-alert {
+      border-color: #FECACA;
+      background: #FFF5F5;
+    }
+    .section-title {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      color: #6D4AE8;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #F5F3FF;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-title-red { color: #DC2626; border-bottom-color: #FEE2E2; }
+    .section-icon {
+      width: 28px; height: 28px;
+      background: #EDE9FE;
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px;
+    }
+    .section-icon-red { background: #FEE2E2; }
+
+    /* KPI Grid */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+    .kpi {
+      background: #F8F7FF;
+      border: 1px solid #EDE9FE;
+      border-radius: 14px;
+      padding: 18px 20px;
+    }
+    .kpi-red {
+      background: #FFF5F5;
+      border-color: #FECACA;
+    }
+    .kpi-yellow {
+      background: #FFFBEB;
+      border-color: #FDE68A;
+    }
+    .kpi-green {
+      background: #F0FDF4;
+      border-color: #BBF7D0;
+    }
+    .kpi-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #A8A29E;
+      margin-bottom: 8px;
+    }
+    .kpi-value {
+      font-size: 30px;
+      font-weight: 800;
+      color: #6D4AE8;
+      letter-spacing: -0.5px;
+      line-height: 1;
+    }
+    .kpi-value-red   { color: #DC2626; }
+    .kpi-value-yellow{ color: #D97706; }
+    .kpi-value-green { color: #16A34A; }
+    .kpi-desc {
+      font-size: 11px;
+      color: #78716C;
+      margin-top: 4px;
+    }
+
+    /* Alert banner */
+    .alert-banner {
+      background: linear-gradient(135deg, #FEF2F2 0%, #FFF5F5 100%);
+      border: 1px solid #FECACA;
+      border-left: 4px solid #DC2626;
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-bottom: 20px;
+      font-size: 13px;
+      color: #7F1D1D;
+      line-height: 1.6;
+    }
+    .alert-banner strong { color: #DC2626; font-size: 14px; }
+
+    /* Timeline */
+    .timeline { display: flex; flex-direction: column; gap: 0; }
+    .tl-item {
+      display: flex;
+      gap: 16px;
+      position: relative;
+    }
+    .tl-item:not(:last-child)::before {
+      content: '';
+      position: absolute;
+      left: 11px; top: 28px;
+      width: 2px;
+      bottom: -4px;
+      background: #EDE9FE;
+    }
+    .tl-dot {
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      margin-top: 2px;
+      position: relative;
+      z-index: 1;
+    }
+    .dot-green  { background: #DCFCE7; color: #15803D; border: 2px solid #86EFAC; }
+    .dot-purple { background: #EDE9FE; color: #6D4AE8; border: 2px solid #C4B5FD; }
+    .dot-gray   { background: #F1F5F9; color: #94A3B8; border: 2px solid #CBD5E1; }
+    .dot-red    { background: #FEE2E2; color: #DC2626; border: 2px solid #FCA5A5; }
+
+    .tl-content {
+      padding-bottom: 18px;
+      flex: 1;
+    }
+    .tl-date { font-size: 10px; font-weight: 700; color: #A8A29E; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 4px; }
+    .tl-msg  { font-size: 13px; font-weight: 600; color: #1C1917; line-height: 1.4; }
+    .tl-sub  { font-size: 11px; color: #78716C; margin-top: 3px; line-height: 1.5; }
+
+    /* Module status */
+    .module-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .module {
+      padding: 14px 16px;
+      border-radius: 12px;
+      border: 1px solid;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .module-done  { background: #F0FDF4; border-color: #BBF7D0; }
+    .module-wip   { background: #FFF7ED; border-color: #FED7AA; }
+    .module-todo  { background: #F8F7FF; border-color: #EDE9FE; }
+    .module-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .dot-done-s { background: #16A34A; }
+    .dot-wip-s  { background: #EA580C; }
+    .dot-todo-s { background: #A8A29E; }
+    .module-name   { font-size: 13px; font-weight: 600; color: #1C1917; }
+    .module-status { font-size: 11px; color: #78716C; margin-top: 2px; }
+
+    /* Risks */
+    .risk-list { display: flex; flex-direction: column; gap: 10px; }
+    .risk {
+      padding: 14px 16px;
+      border-radius: 10px;
+      border-left: 3px solid;
+      font-size: 13px;
+      color: #44403C;
+      line-height: 1.6;
+    }
+    .risk-high   { background: #FFF5F5; border-color: #EF4444; }
+    .risk-medium { background: #FFFBEB; border-color: #F59E0B; }
+    .risk strong { font-weight: 700; display: block; margin-bottom: 2px; }
+
+    /* Steps */
+    .steps-list { display: flex; flex-direction: column; gap: 10px; }
+    .step { display: flex; gap: 12px; align-items: flex-start; font-size: 13px; color: #44403C; line-height: 1.5; }
+    .step-num {
+      width: 24px; height: 24px;
+      background: #6D4AE8; color: #fff;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700;
+      flex-shrink: 0; margin-top: 1px;
+    }
+    .step-num-red { background: #DC2626; }
+
+    /* Highlight */
+    .highlight {
+      background: linear-gradient(135deg, #EDE9FE 0%, #F5F3FF 100%);
+      border: 1px solid #DDD6FE;
+      border-radius: 14px;
+      padding: 18px 20px;
+      font-size: 13px;
+      color: #44403C;
+      line-height: 1.7;
+    }
+    .highlight strong { color: #6D4AE8; }
+
+    /* Velocity chart placeholder */
+    .velocity-bar {
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+      height: 80px;
+      margin-top: 4px;
+    }
+    .v-col { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1; }
+    .v-bar { width: 100%; border-radius: 6px 6px 0 0; }
+    .v-label { font-size: 10px; color: #A8A29E; font-weight: 600; text-transform: uppercase; }
+    .v-val   { font-size: 10px; color: #78716C; font-weight: 700; }
+
+    .footer {
+      text-align: center;
+      margin-top: 40px;
+      font-size: 11px;
+      color: #A8A29E;
+    }
+
+    @media (max-width: 600px) {
+      .kpi-grid     { grid-template-columns: 1fr 1fr; }
+      .module-grid  { grid-template-columns: 1fr; }
+      .header       { padding: 24px; }
+      .section      { padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-tag">Xokai · Daily CEO Report</div>
+    <h1>Standup Summary</h1>
+    <div class="header-sub">Viernes 17 de abril de 2026 · Generado por AI Agile Coach</div>
+    <div class="header-meta">
+      <div class="meta-item">📅 Sprint: C1 — Datos reales + CRUD</div>
+      <div class="meta-item">🏫 Piloto: Habitat Learning Community</div>
+      <div class="meta-item meta-alert">🚨 3 dias sin commits de codigo</div>
+    </div>
+  </div>
+
+  <!-- Alert banner -->
+  <div class="alert-banner">
+    <strong>Alerta de velocidad</strong><br>
+    El ultimo commit de codigo fue el <strong>14 de abril</strong>. Han pasado 3 dias (mier 15, jue 16, vie 17) sin actividad en el repositorio. El unico commit del periodo fue el reporte HTML del standup del dia 15. Para un proyecto en etapa early-stage con un piloto proximo, esto requiere atencion inmediata.
+  </div>
+
+  <!-- KPIs -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-icon">📊</div>
+      Metricas del periodo (14–17 abr)
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi kpi-red">
+        <div class="kpi-label">Commits de codigo</div>
+        <div class="kpi-value kpi-value-red">0</div>
+        <div class="kpi-desc">Ultimos 3 dias · solo 1 doc commit</div>
+      </div>
+      <div class="kpi kpi-red">
+        <div class="kpi-label">Dias sin actividad</div>
+        <div class="kpi-value kpi-value-red">3</div>
+        <div class="kpi-desc">15, 16 y 17 de abril</div>
+      </div>
+      <div class="kpi kpi-yellow">
+        <div class="kpi-label">Modulos operativos</div>
+        <div class="kpi-value kpi-value-yellow">2/10</div>
+        <div class="kpi-desc">Login + Dashboard shell</div>
+      </div>
+      <div class="kpi kpi-green">
+        <div class="kpi-label">DB Schema</div>
+        <div class="kpi-value kpi-value-green">✓</div>
+        <div class="kpi-desc">674 lineas · RLS completo</div>
+      </div>
+      <div class="kpi kpi-red">
+        <div class="kpi-label">Datos reales en DB</div>
+        <div class="kpi-value kpi-value-red">0</div>
+        <div class="kpi-desc">Sin alumnos, sin escuela cargada</div>
+      </div>
+      <div class="kpi kpi-yellow">
+        <div class="kpi-label">PRs mergeados</div>
+        <div class="kpi-value kpi-value-yellow">2</div>
+        <div class="kpi-desc">Ambos el 14 abr · nada desde entonces</div>
+      </div>
+    </div>
+
+    <!-- Velocity mini chart -->
+    <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #F5F3FF;">
+      <div style="font-size: 11px; font-weight: 700; color: #A8A29E; letter-spacing: 0.07em; text-transform: uppercase; margin-bottom: 10px;">Commits por dia</div>
+      <div class="velocity-bar">
+        <div class="v-col">
+          <div class="v-val">2</div>
+          <div class="v-bar" style="height:40px; background:#EDE9FE;"></div>
+          <div class="v-label">11 abr</div>
+        </div>
+        <div class="v-col">
+          <div class="v-val">2</div>
+          <div class="v-bar" style="height:40px; background:#EDE9FE;"></div>
+          <div class="v-label">12 abr</div>
+        </div>
+        <div class="v-col">
+          <div class="v-val">0</div>
+          <div class="v-bar" style="height:4px; background:#F1F5F9;"></div>
+          <div class="v-label">13 abr</div>
+        </div>
+        <div class="v-col">
+          <div class="v-val">8</div>
+          <div class="v-bar" style="height:80px; background:#6D4AE8;"></div>
+          <div class="v-label">14 abr</div>
+        </div>
+        <div class="v-col">
+          <div class="v-val">1</div>
+          <div class="v-bar" style="height:10px; background:#DDD6FE;"></div>
+          <div class="v-label">15 abr</div>
+        </div>
+        <div class="v-col">
+          <div class="v-val">0</div>
+          <div class="v-bar" style="height:4px; background:#FCA5A5;"></div>
+          <div class="v-label">16 abr</div>
+        </div>
+        <div class="v-col">
+          <div class="v-val">0</div>
+          <div class="v-bar" style="height:4px; background:#FCA5A5;"></div>
+          <div class="v-label">17 abr</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Timeline de actividad real -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-icon">📋</div>
+      Timeline de actividad — semana completa
+    </div>
+    <div class="timeline">
+
+      <div class="tl-item">
+        <div class="tl-dot dot-purple">✦</div>
+        <div class="tl-content">
+          <div class="tl-date">14 abr · 23:39</div>
+          <div class="tl-msg">feat(c0): setup completo de infraestructura base — C0-T1 al C0-T8</div>
+          <div class="tl-sub">Autor: Claude Agent · shadcn/ui + Sentry + DB schema 674 lineas + middleware + design system components</div>
+        </div>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-dot dot-green">Ez</div>
+        <div class="tl-content">
+          <div class="tl-date">14 abr · 14:14</div>
+          <div class="tl-msg">fix: login input text color visible</div>
+          <div class="tl-sub">Autor: Ez · detectado en prueba manual · color: #1C1917</div>
+        </div>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-dot dot-green">Ez</div>
+        <div class="tl-content">
+          <div class="tl-date">14 abr · 13:10</div>
+          <div class="tl-msg">feat: admin dashboard completo con branding Xokai</div>
+          <div class="tl-sub">Autor: Ez · sidebar 7 modulos · stat cards · responsive · Supabase Auth conectado</div>
+        </div>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-dot dot-green">Ez</div>
+        <div class="tl-content">
+          <div class="tl-date">14 abr · mañana</div>
+          <div class="tl-msg">feat: login page + middleware + Supabase client</div>
+          <div class="tl-sub">Autor: Ez · email/password · redirect a /dashboard</div>
+        </div>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-dot dot-purple">AI</div>
+        <div class="tl-content">
+          <div class="tl-date">15 abr</div>
+          <div class="tl-msg">docs: CEO standup report HTML (15 abr)</div>
+          <div class="tl-sub">Autor: Claude Agent · unico commit del dia · no codigo de producto</div>
+        </div>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-dot dot-red">–</div>
+        <div class="tl-content">
+          <div class="tl-date">16 abr — jueves</div>
+          <div class="tl-msg">Sin actividad en el repositorio</div>
+          <div class="tl-sub">0 commits · 0 PRs</div>
+        </div>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-dot dot-red">–</div>
+        <div class="tl-content">
+          <div class="tl-date">17 abr — hoy (viernes)</div>
+          <div class="tl-msg">Sin commits de codigo hasta el momento</div>
+          <div class="tl-sub">Solo este reporte generado por Agile Coach</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Estado de modulos -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-icon">🗺️</div>
+      Estado de modulos — sin cambios desde el 14 abr
+    </div>
+    <div class="module-grid">
+      <div class="module module-done">
+        <div class="module-dot dot-done-s"></div>
+        <div>
+          <div class="module-name">Login / Auth</div>
+          <div class="module-status">Funcional · Supabase Auth</div>
+        </div>
+      </div>
+      <div class="module module-done">
+        <div class="module-dot dot-done-s"></div>
+        <div>
+          <div class="module-name">Dashboard Admin (shell)</div>
+          <div class="module-status">UI lista · sin datos reales</div>
+        </div>
+      </div>
+      <div class="module module-done">
+        <div class="module-dot dot-done-s"></div>
+        <div>
+          <div class="module-name">DB Schema + RLS</div>
+          <div class="module-status">674 lineas · todas las tablas</div>
+        </div>
+      </div>
+      <div class="module module-done">
+        <div class="module-dot dot-done-s"></div>
+        <div>
+          <div class="module-name">Design System base</div>
+          <div class="module-status">shadcn/ui + componentes custom</div>
+        </div>
+      </div>
+      <div class="module module-todo">
+        <div class="module-dot dot-todo-s"></div>
+        <div>
+          <div class="module-name">CRUD Alumnos / Grupos</div>
+          <div class="module-status">Sin iniciar · bloqueador critico</div>
+        </div>
+      </div>
+      <div class="module module-todo">
+        <div class="module-dot dot-todo-s"></div>
+        <div>
+          <div class="module-name">Pickup / Semaforo GPS</div>
+          <div class="module-status">Solo nav item</div>
+        </div>
+      </div>
+      <div class="module module-todo">
+        <div class="module-dot dot-todo-s"></div>
+        <div>
+          <div class="module-name">Comunicados</div>
+          <div class="module-status">Sin iniciar</div>
+        </div>
+      </div>
+      <div class="module module-todo">
+        <div class="module-dot dot-todo-s"></div>
+        <div>
+          <div class="module-name">Pagos / CFDI 4.0</div>
+          <div class="module-status">Schema listo · Stripe sin integrar</div>
+        </div>
+      </div>
+      <div class="module module-todo">
+        <div class="module-dot dot-todo-s"></div>
+        <div>
+          <div class="module-name">App iOS / Android</div>
+          <div class="module-status">Sin iniciar</div>
+        </div>
+      </div>
+      <div class="module module-todo">
+        <div class="module-dot dot-todo-s"></div>
+        <div>
+          <div class="module-name">CI/CD + Vercel Previews</div>
+          <div class="module-status">Sin configurar</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Riesgos -->
+  <div class="section section-alert">
+    <div class="section-title section-title-red">
+      <div class="section-icon section-icon-red">🚨</div>
+      Riesgos activos — esta semana
+    </div>
+    <div class="risk-list">
+      <div class="risk risk-high">
+        <strong>CRITICO: 3 dias sin codigo de producto</strong>
+        En early-stage con un piloto por confirmar, la velocidad es todo. 3 dias de pausa sin un contexto claro (enfermedad, blocker externo, decision de cambio de direccion) es una señal que Ez necesita evaluar hoy. Si fue por una razon valida, documentarla. Si no, retomar el ritmo hoy mismo.
+      </div>
+      <div class="risk risk-high">
+        <strong>CRITICO: Dashboard sin datos reales</strong>
+        El dashboard muestra ceros hardcodeados. No hay CRUD de alumnos ni de escuela. Si hay una demo o reunion con Habitat proxima, no hay nada real que mostrar mas alla del diseño.
+      </div>
+      <div class="risk risk-medium">
+        <strong>MEDIO: Scope del piloto no definido en el repo</strong>
+        No hay evidencia en el repositorio (issues, milestones, README) de que modulos va a usar Habitat en el piloto y en que fecha. Sin eso, el equipo no puede priorizar correctamente.
+      </div>
+      <div class="risk risk-medium">
+        <strong>MEDIO: Ninguna prueba en el codebase</strong>
+        No hay tests unitarios ni de integracion. En un SaaS que maneja datos de menores, esto es deuda tecnica que se acumula con cada feature sin cobertura.
+      </div>
+    </div>
+  </div>
+
+  <!-- Foco recomendado -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-icon">🎯</div>
+      Foco recomendado — hoy y proxima semana
+    </div>
+    <div class="steps-list">
+      <div class="step">
+        <div class="step-num step-num-red">!</div>
+        <div><strong>Hoy (viernes):</strong> Ez define en 30 min el scope exacto del piloto con Habitat. Que modulos, en que fecha. Esa decision desbloquea todo lo demas. Sin eso, cualquier codigo que se escriba puede ser en la direccion equivocada.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">1</div>
+        <div><strong>Lunes — primera prioridad:</strong> Conectar datos reales al dashboard. Alta de Habitat en DB, primer alumno de prueba, queries reales en los stat cards. Con eso tienes algo demostrable.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div><strong>CRUD Alumnos:</strong> Listado, alta y edicion de alumnos con validacion Zod + react-hook-form. Es el nucleo de Pickup, Comunicados y Pagos — todo depende de esto.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div><strong>CRUD Grupos:</strong> Asignar alumnos a grupos. Habitat tiene grupos por grado (Kinder A, 1ro B, etc.). Sin grupos no hay Pickup funcional.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div><strong>Iniciar Pickup (logica de sesion):</strong> Crear/abrir sesion de pickup, estado del semaforo, llamar a alumno. Es el modulo diferenciador — cuanto antes empiece, mejor.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Nota del coach -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-icon">💡</div>
+      Nota del Agile Coach para Ez
+    </div>
+    <div class="highlight">
+      <strong>La infraestructura esta lista. El bloqueo ya no es tecnico.</strong><br><br>
+      Tienes login funcional, dashboard con diseno de producto real, schema de DB completo con RLS, y un design system solido. Todo lo que se necesita para construir features reales esta en su lugar.<br><br>
+      La pregunta critica de esta semana no es <em>"que hay que construir"</em> — eso esta claro. Es <strong>"por que no se ha construido nada en 3 dias?"</strong> Como CEO, eso es lo primero que debes responder hoy, antes de escribir una sola linea de codigo.<br><br>
+      Si la respuesta es "estuve en reuniones / vendiendo / definiendo el piloto", eso es valido y productivo. Si la respuesta es "no sabia por donde empezar", ese es el bloqueo que hay que romper hoy con un primer commit concreto antes del fin del dia.
+    </div>
+  </div>
+
+  <div class="footer">
+    Xokai · Daily Standup Report · 17 de abril de 2026<br>
+    Generado por AI Agile Coach · xokai.app · hola@xokai.app<br>
+    <em>Basado en git history real del repositorio ezvaelka/xokai</em>
+  </div>
+
+</div>
+</body>
+</html>
