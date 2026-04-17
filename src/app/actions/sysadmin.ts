@@ -323,7 +323,6 @@ export async function createSchoolWithAdmin(data: {
   schoolName: string
   city:       string
   email:      string
-  password:   string
 }): Promise<{ error: string | null; schoolId: string | null }> {
   await requireSysadmin()
   const admin = createAdminClient()
@@ -345,17 +344,16 @@ export async function createSchoolWithAdmin(data: {
     return { error: schoolError?.message ?? 'Error al crear la escuela', schoolId: null }
   }
 
-  // Paso 2: Crear usuario en auth
-  const { data: authData, error: authError } = await admin.auth.admin.createUser({
-    email:          data.email,
-    password:       data.password,
-    email_confirm:  true,
-  })
+  // Paso 2: Invitar directora — crea usuario + envía email automáticamente via Resend
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+  const { data: authData, error: authError } = await admin.auth.admin.inviteUserByEmail(
+    data.email,
+    { redirectTo: `${appUrl}/onboarding` },
+  )
 
   if (authError || !authData.user) {
-    // Limpiar escuela creada
     await Promise.resolve(admin.from('schools').delete().eq('id', school.id)).catch(() => null)
-    return { error: authError?.message ?? 'Error al crear usuario', schoolId: null }
+    return { error: authError?.message ?? 'Error al invitar a la directora', schoolId: null }
   }
 
   // Paso 3: Crear user_profile
@@ -368,7 +366,6 @@ export async function createSchoolWithAdmin(data: {
     })
 
   if (profileError) {
-    // Limpiar usuario y escuela creados
     await admin.auth.admin.deleteUser(authData.user.id).catch(() => null)
     await Promise.resolve(admin.from('schools').delete().eq('id', school.id)).catch(() => null)
     return { error: profileError.message, schoolId: null }

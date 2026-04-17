@@ -61,6 +61,23 @@ type JoinForm     = z.infer<typeof joinSchema>
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
+const MX_STATES = [
+  'Aguascalientes', 'Baja California', 'Baja California Sur', 'Campeche',
+  'Chiapas', 'Chihuahua', 'Ciudad de México', 'Coahuila', 'Colima',
+  'Durango', 'Estado de México', 'Guanajuato', 'Guerrero', 'Hidalgo',
+  'Jalisco', 'Michoacán', 'Morelos', 'Nayarit', 'Nuevo León', 'Oaxaca',
+  'Puebla', 'Querétaro', 'Quintana Roo', 'San Luis Potosí', 'Sinaloa',
+  'Sonora', 'Tabasco', 'Tamaulipas', 'Tlaxcala', 'Veracruz', 'Yucatán',
+  'Zacatecas',
+]
+const LATAM_COUNTRIES = [
+  { flag: '🇦🇷', name: 'Argentina' },
+  { flag: '🇧🇷', name: 'Brasil' },
+  { flag: '🇨🇱', name: 'Chile' },
+  { flag: '🇨🇴', name: 'Colombia' },
+  { flag: '🇵🇪', name: 'Perú' },
+]
+
 const REGIMENES = [
   { value: '601', label: '601 — General de Ley Personas Morales' },
   { value: '603', label: '603 — Personas Morales con Fines no Lucrativos' },
@@ -399,17 +416,29 @@ export default function OnboardingClient({ userEmail }: Props) {
                     <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
+                    <div className="sm:col-span-2">
                       <Label htmlFor="dir">Dirección</Label>
                       <Input id="dir" placeholder="Av. Principal 123" className="mt-1.5" {...fDetails.register('direccion')} />
                     </div>
                     <div>
-                      <Label htmlFor="ciu">Ciudad</Label>
-                      <Input id="ciu" placeholder="Guadalajara" className="mt-1.5" {...fDetails.register('ciudad')} />
-                    </div>
-                    <div>
-                      <Label htmlFor="est">Estado</Label>
-                      <Input id="est" placeholder="Jalisco" className="mt-1.5" {...fDetails.register('estado')} />
+                      <Label htmlFor="ciu">Ubicación</Label>
+                      <select
+                        id="ciu"
+                        {...fDetails.register('ciudad')}
+                        className="mt-1.5 flex h-9 w-full rounded-xl border border-xk-border bg-xk-card px-3 py-2 text-sm text-xk-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-xk-accent"
+                      >
+                        <option value="">Selecciona estado o país…</option>
+                        <optgroup label="🇲🇽 México">
+                          {MX_STATES.map((s) => (
+                            <option key={s} value={s}>{s}</option>
+                          ))}
+                        </optgroup>
+                        <optgroup label="América Latina">
+                          {LATAM_COUNTRIES.map((c) => (
+                            <option key={c.name} value={c.name}>{c.flag} {c.name}</option>
+                          ))}
+                        </optgroup>
+                      </select>
                     </div>
                     <div>
                       <Label htmlFor="tel">Teléfono</Label>
