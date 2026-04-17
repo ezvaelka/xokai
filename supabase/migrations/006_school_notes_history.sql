@@ -18,4 +18,8 @@ CREATE INDEX idx_school_notes_school ON school_notes(school_id, created_at DESC)
 ALTER TABLE school_notes ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "sysadmin_all_school_notes" ON school_notes
-  FOR ALL USING (is_sysadmin()) WITH CHECK (is_sysadmin());
+  FOR ALL USING (
+    coalesce((select role = 'sysadmin' from user_profiles where id = auth.uid()), false)
+  ) WITH CHECK (
+    coalesce((select role = 'sysadmin' from user_profiles where id = auth.uid()), false)
+  );
