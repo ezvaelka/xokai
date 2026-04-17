@@ -4,7 +4,8 @@ import { useState, useTransition } from 'react'
 import { useRouter }               from 'next/navigation'
 import { toast }                   from 'sonner'
 import { Loader2 }                 from 'lucide-react'
-import { updateSchoolPlan, extendTrial, type SchoolPlan, PLAN_LABELS } from '@/app/actions/sysadmin'
+import { updateSchoolPlan, extendTrial, type SchoolPlan } from '@/app/actions/sysadmin'
+import { PLAN_LABELS } from '@/lib/sysadmin-constants'
 
 const PLANS: SchoolPlan[] = ['trial', 'base', 'base_pickup', 'suspended', 'churned']
 
