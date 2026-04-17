@@ -4,9 +4,10 @@ import { useRouter } from 'next/navigation'
 import type { SchoolListItem, SchoolStatus } from '@/app/actions/sysadmin'
 
 const STATUS_BADGE: Record<Exclude<SchoolStatus, 'all'>, { label: string; className: string }> = {
-  active:     { label: 'Activa',        className: 'bg-green-100 text-green-700 border-green-200' },
-  onboarding: { label: 'En onboarding', className: 'bg-amber-100 text-amber-700 border-amber-200' },
-  paused:     { label: 'Pausada',       className: 'bg-zinc-100 text-zinc-700 border-zinc-200' },
+  active:     { label: 'Activa',             className: 'bg-green-100 text-green-700 border-green-200' },
+  onboarding: { label: 'En onboarding',      className: 'bg-amber-100 text-amber-700 border-amber-200' },
+  paused:     { label: 'Pausada',            className: 'bg-zinc-100 text-zinc-700 border-zinc-200' },
+  pending:    { label: 'Pendiente aprob.',   className: 'bg-orange-100 text-orange-700 border-orange-200' },
 }
 
 function fmtDate(iso: string) {

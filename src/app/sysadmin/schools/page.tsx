@@ -34,6 +34,7 @@ export default async function SysadminSchoolsPage({
 
   const counts = {
     active:     all.filter((s) => s.status === 'active').length,
+    pending:    all.filter((s) => s.status === 'pending').length,
     onboarding: all.filter((s) => s.status === 'onboarding').length,
     paused:     all.filter((s) => s.status === 'paused').length,
   }
@@ -68,6 +69,16 @@ export default async function SysadminSchoolsPage({
             <span className="text-sm font-semibold text-green-700">{counts.active}</span>
             <span className="text-xs text-green-600">activas</span>
           </Link>
+          {counts.pending > 0 && (
+            <Link
+              href="/sysadmin/schools?status=pending"
+              className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-orange-50 border border-orange-300 hover:bg-orange-100 transition-colors animate-pulse"
+            >
+              <span className="w-2 h-2 rounded-full bg-orange-500" />
+              <span className="text-sm font-semibold text-orange-700">{counts.pending}</span>
+              <span className="text-xs text-orange-600">por aprobar</span>
+            </Link>
+          )}
           <Link
             href="/sysadmin/schools?status=onboarding"
             className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-amber-50 border border-amber-200 hover:bg-amber-100 transition-colors"
