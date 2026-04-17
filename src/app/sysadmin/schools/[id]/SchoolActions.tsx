@@ -3,13 +3,14 @@
 import { useState, useTransition, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { Loader2, Power, Mail, Trash2, LogIn, MoreHorizontal } from 'lucide-react'
+import { Loader2, Power, Mail, Trash2, LogIn, MoreHorizontal, Zap } from 'lucide-react'
 import {
   toggleSchoolActive,
   deleteSchool,
   resendMagicLinkToDirector,
   impersonateDirector,
 } from '@/app/actions/sysadmin'
+import { startImpersonation } from '@/app/actions/impersonate'
 
 export default function SchoolActions({
   schoolId,
@@ -85,7 +86,20 @@ export default function SchoolActions({
   }
 
   return (
-    <div className="relative" ref={ref}>
+    <div className="flex items-center gap-2 flex-wrap">
+      {/* Botón prominente — impersonación directa vía cookie */}
+      <form action={startImpersonation.bind(null, schoolId, schoolName)}>
+        <button
+          type="submit"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-xk-accent text-white text-sm font-medium hover:bg-xk-accent-dark transition-colors shadow-sm"
+        >
+          <Zap className="w-4 h-4" />
+          Entrar como Admin
+        </button>
+      </form>
+
+      {/* Menú de acciones secundarias */}
+      <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen(v => !v)}
         disabled={pending}
@@ -120,6 +134,7 @@ export default function SchoolActions({
           </button>
         </div>
       )}
+      </div>
     </div>
   )
 }
