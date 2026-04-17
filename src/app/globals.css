@@ -10,19 +10,29 @@
 
 @theme inline {
   /* Xokai brand colors */
-  --color-xk-bg:              #F7F6F3;
+  --color-xk-bg:              #FAFAF8;
+  --color-xk-surface:         #FFFFFF;
+  --color-xk-surface-elevated:#FFFFFF;
   --color-xk-card:            #FFFFFF;
-  --color-xk-subtle:          #EFEDE8;
-  --color-xk-border:          #E2DFD8;
-  --color-xk-text:            #1C1A17;
-  --color-xk-text-secondary:  #6B6760;
+  --color-xk-subtle:          #F4F3EF;
+  --color-xk-border:          #ECEAE3;
+  --color-xk-border-strong:   #D8D5CC;
+  --color-xk-text:            #0F0E0C;
+  --color-xk-text-secondary:  #57534E;
   --color-xk-text-muted:      #A8A49E;
   --color-xk-accent:          #6D4AE8;
-  --color-xk-accent-light:    #EDE9FE;
+  --color-xk-accent-light:    #F3F0FF;
   --color-xk-accent-medium:   #C4B5FD;
-  --color-xk-accent-dark:     #4C1D95;
+  --color-xk-accent-dark:     #5B3BD4;
   --color-xk-warning:         #D97706;
   --color-xk-danger:          #DC2626;
+  --color-xk-success:         #059669;
+
+  /* App admin — sidebar oscuro opcional */
+  --color-xk-sidebar-bg:      #0F0E0C;
+  --color-xk-sidebar-hover:   #1C1A17;
+  --color-xk-sidebar-text:    #E7E5E0;
+  --color-xk-sidebar-muted:   #8A867E;
 
   /* shadcn/ui CSS variable bridge */
   --color-background:   var(--background);
@@ -60,25 +70,32 @@
    ============================================================ */
 
 :root {
-  --radius: 0.5rem;
+  --radius: 0.625rem;
 
   /* shadcn/ui variables mapeadas a Xokai tokens */
-  --background:          #F7F6F3;
-  --foreground:          #1C1A17;
+  --background:          #FAFAF8;
+  --foreground:          #0F0E0C;
   --card:                #FFFFFF;
-  --card-foreground:     #1C1A17;
+  --card-foreground:     #0F0E0C;
   --primary:             #6D4AE8;
   --primary-foreground:  #FFFFFF;
-  --secondary:           #EFEDE8;
-  --secondary-foreground:#1C1A17;
-  --muted:               #EFEDE8;
-  --muted-foreground:    #6B6760;
-  --accent:              #EDE9FE;
+  --secondary:           #F4F3EF;
+  --secondary-foreground:#0F0E0C;
+  --muted:               #F4F3EF;
+  --muted-foreground:    #57534E;
+  --accent:              #F3F0FF;
   --accent-foreground:   #6D4AE8;
   --destructive:         #DC2626;
-  --border:              #E2DFD8;
-  --input:               #E2DFD8;
+  --border:              #ECEAE3;
+  --input:               #ECEAE3;
   --ring:                #6D4AE8;
+
+  /* Shadows modernas (subtles) */
+  --shadow-xs:       0 1px 2px 0 rgb(0 0 0 / 0.04);
+  --shadow-sm:       0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.04);
+  --shadow-md:       0 4px 8px -2px rgb(0 0 0 / 0.06), 0 2px 4px -2px rgb(0 0 0 / 0.04);
+  --shadow-lg:       0 10px 20px -4px rgb(0 0 0 / 0.08), 0 4px 8px -4px rgb(0 0 0 / 0.04);
+  --shadow-glow:     0 0 0 1px rgb(109 74 232 / 0.1), 0 4px 16px -2px rgb(109 74 232 / 0.15);
 }
 
 /* ============================================================
@@ -97,3 +114,66 @@ body {
 .font-heading {
   font-family: var(--font-heading);
 }
+
+/* ============================================================
+   Utilities 2026 — superficies, números, focus rings
+   ============================================================ */
+
+.xk-surface {
+  background: var(--color-xk-surface);
+  border-radius: 12px;
+  box-shadow: var(--shadow-xs);
+  border: 1px solid color-mix(in oklab, var(--color-xk-border) 70%, transparent);
+}
+
+.xk-surface-elevated {
+  background: var(--color-xk-surface);
+  border-radius: 14px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid color-mix(in oklab, var(--color-xk-border) 50%, transparent);
+}
+
+.xk-surface-flat {
+  background: var(--color-xk-surface);
+  border-radius: 12px;
+  border: 1px solid color-mix(in oklab, var(--color-xk-border) 80%, transparent);
+}
+
+.xk-num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum", "cv11";
+  letter-spacing: -0.01em;
+}
+
+.xk-metric-number {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+  font-weight: 600;
+  letter-spacing: -0.04em;
+}
+
+.xk-focus {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-xk-accent) 25%, transparent);
+}
+
+.xk-sidebar-dark {
+  background: var(--color-xk-sidebar-bg);
+  color: var(--color-xk-sidebar-text);
+}
+
+/* Subtle grid pattern for empty states */
+.xk-grid-bg {
+  background-image:
+    linear-gradient(to right, color-mix(in oklab, var(--color-xk-border) 60%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklab, var(--color-xk-border) 60%, transparent) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* Custom scrollbar */
+.xk-scroll::-webkit-scrollbar { width: 10px; height: 10px; }
+.xk-scroll::-webkit-scrollbar-thumb { background: color-mix(in oklab, var(--color-xk-border-strong) 80%, transparent); border-radius: 8px; border: 2px solid transparent; background-clip: padding-box; }
+.xk-scroll::-webkit-scrollbar-thumb:hover { background: var(--color-xk-border-strong); background-clip: padding-box; border: 2px solid transparent; }
+.xk-scroll::-webkit-scrollbar-track { background: transparent; }
