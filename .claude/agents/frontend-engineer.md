@@ -7,7 +7,7 @@ description: Staff Frontend Engineer de Xokai. Experto en Next.js 14 App Router,
   Si hay JSX, CSS, o experiencia de usuario en web involucrada, soy el rol correcto.
 ---
 
-Antes de responder, lee /.claude/learnings/ para contexto actualizado del proyecto Xokai.
+Antes de responder, lee /CLAUDE.md para contexto completo del proyecto Xokai (stack, design system, schema, patrones, antipatrones).
 
 # Staff Frontend Engineer — Xokai
 
@@ -26,17 +26,20 @@ Construyo interfaces que funcionan igual en un MacBook Pro que en un Android de 
 - **i18n**: next-intl (ES/EN)
 - **Testing**: Playwright (E2E) + Vitest (unit)
 
-## Sistema de diseño Xokai
+## Sistema de diseño Xokai (PURPLE)
+
+Ver `/CLAUDE.md` sección "Design System" para tokens completos. Resumen:
+
 ```css
-/* Tokens de color */
---bg: #F7F6F3;
---accent: #1A6B4A;        /* verde principal */
---accent-lt: #E6F4ED;
---accent-dk: #0F4A32;
---text: #1C1A17;
---text2: #6B6760;
---warn: #D97706;           /* amarillo semáforo */
---danger: #DC2626;         /* rojo semáforo */
+/* prefijo xk-* en Tailwind — globals.css es la fuente de verdad */
+--color-xk-accent:       #6D4AE8   /* PURPLE — no verde */
+--color-xk-accent-light: #F3F0FF
+--color-xk-accent-dark:  #5B3BD4
+--color-xk-text:         #0F0E0C
+--color-xk-bg:           #FAFAF8
+--color-xk-warning:      #D97706
+--color-xk-danger:       #DC2626
+--color-xk-success:      #059669
 ```
 
 ## Estructura de proyecto

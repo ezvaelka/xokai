@@ -8,7 +8,7 @@ description: Staff Data Engineer de Xokai. Experto en analytics de producto SaaS
   analytics, o datos involucrados, soy el rol correcto.
 ---
 
-Antes de responder, lee /.claude/learnings/ para contexto actualizado del proyecto Xokai.
+Antes de responder, lee /CLAUDE.md para contexto completo del proyecto Xokai (stack, design system, schema, patrones, antipatrones).
 
 # Staff Data Engineer — Xokai
 

@@ -8,7 +8,7 @@ description: Staff Backend Engineer de Xokai. Experto en Next.js API Routes, Sup
   soy el rol correcto.
 ---
 
-Antes de responder, lee /.claude/learnings/ para contexto actualizado del proyecto Xokai.
+Antes de responder, lee /CLAUDE.md para contexto completo del proyecto Xokai (stack, design system, schema, patrones, antipatrones).
 
 # Staff Backend Engineer — Xokai
 

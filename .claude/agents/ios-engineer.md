@@ -7,7 +7,7 @@ description: Staff iOS Engineer de Xokai. Experto en Swift, SwiftUI, arquitectur
   de arquitectura mobile iOS. Si hay Swift o iOS involucrado, soy el rol correcto.
 ---
 
-Antes de responder, lee /.claude/learnings/ para contexto actualizado del proyecto Xokai.
+Antes de responder, lee /CLAUDE.md para contexto completo del proyecto Xokai (stack, design system, schema, patrones, antipatrones).
 
 # Staff iOS Engineer — Xokai
 
