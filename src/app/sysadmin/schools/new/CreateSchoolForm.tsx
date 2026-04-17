@@ -7,6 +7,24 @@ import { Loader2 }                  from 'lucide-react'
 import { Button }                   from '@/components/ui/button'
 import { createSchoolWithAdmin }    from '@/app/actions/sysadmin'
 
+const MX_STATES = [
+  'Aguascalientes', 'Baja California', 'Baja California Sur', 'Campeche',
+  'Chiapas', 'Chihuahua', 'Ciudad de México', 'Coahuila', 'Colima',
+  'Durango', 'Estado de México', 'Guanajuato', 'Guerrero', 'Hidalgo',
+  'Jalisco', 'Michoacán', 'Morelos', 'Nayarit', 'Nuevo León', 'Oaxaca',
+  'Puebla', 'Querétaro', 'Quintana Roo', 'San Luis Potosí', 'Sinaloa',
+  'Sonora', 'Tabasco', 'Tamaulipas', 'Tlaxcala', 'Veracruz', 'Yucatán',
+  'Zacatecas',
+]
+
+const LATAM_COUNTRIES = [
+  { flag: '🇦🇷', name: 'Argentina' },
+  { flag: '🇧🇷', name: 'Brasil' },
+  { flag: '🇨🇱', name: 'Chile' },
+  { flag: '🇨🇴', name: 'Colombia' },
+  { flag: '🇵🇪', name: 'Perú' },
+]
+
 export default function CreateSchoolForm() {
   const router = useRouter()
   const [pending, start] = useTransition()
@@ -51,14 +69,25 @@ export default function CreateSchoolForm() {
 
       <div>
         <label className="block text-xs font-medium text-xk-text-muted uppercase tracking-wider mb-1.5">
-          Ciudad
+          Ubicación
         </label>
-        <input
+        <select
           value={form.city}
           onChange={(e) => set('city', e.target.value)}
-          placeholder="Ej: Guadalajara"
-          className="w-full rounded-xl border border-xk-border bg-xk-bg px-3 py-2.5 text-sm text-xk-text placeholder:text-xk-text-muted focus:outline-none focus:ring-2 focus:ring-xk-accent focus:border-transparent"
-        />
+          className="w-full rounded-xl border border-xk-border bg-xk-bg px-3 py-2.5 text-sm text-xk-text focus:outline-none focus:ring-2 focus:ring-xk-accent focus:border-transparent"
+        >
+          <option value="">Selecciona estado o país…</option>
+          <optgroup label="🇲🇽 México">
+            {MX_STATES.map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </optgroup>
+          <optgroup label="América Latina">
+            {LATAM_COUNTRIES.map((c) => (
+              <option key={c.name} value={c.name}>{c.flag} {c.name}</option>
+            ))}
+          </optgroup>
+        </select>
       </div>
 
       <div className="pt-2 pb-1">
