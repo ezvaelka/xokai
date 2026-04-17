@@ -3,27 +3,12 @@
 import { revalidatePath } from 'next/cache'
 import { createClient }      from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { PLAN_RATE_USD, type SchoolPlan } from '@/lib/sysadmin-constants'
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
 export type SchoolStatus = 'active' | 'onboarding' | 'paused' | 'pending' | 'all'
-export type SchoolPlan   = 'trial' | 'base' | 'base_pickup' | 'suspended' | 'churned'
-
-export const PLAN_LABELS: Record<SchoolPlan, string> = {
-  trial:        'Trial',
-  base:         'Base · $7/alumno',
-  base_pickup:  'Base + Pickup · $9/alumno',
-  suspended:    'Suspendida',
-  churned:      'Churned',
-}
-
-export const PLAN_RATE_USD: Record<SchoolPlan, number> = {
-  trial:        0,
-  base:         7,
-  base_pickup:  9,
-  suspended:    0,
-  churned:      0,
-}
+export type { SchoolPlan } from '@/lib/sysadmin-constants'
 
 export type ActivityLogEntry = {
   id:         string
