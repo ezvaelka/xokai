@@ -1,10 +1,9 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { Loader2, Power, Mail, Trash2, LogIn } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Loader2, Power, Mail, Trash2, LogIn, MoreHorizontal } from 'lucide-react'
 import {
   toggleSchoolActive,
   deleteSchool,
@@ -24,8 +23,19 @@ export default function SchoolActions({
   const router = useRouter()
   const [pending, startTransition] = useTransition()
   const [action, setAction] = useState<'toggle' | 'magic' | 'delete' | 'impersonate' | null>(null)
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function close(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', close)
+    return () => document.removeEventListener('mousedown', close)
+  }, [])
 
   async function handleToggle() {
+    setOpen(false)
     setAction('toggle')
     startTransition(async () => {
       const res = await toggleSchoolActive(schoolId)
@@ -37,6 +47,7 @@ export default function SchoolActions({
   }
 
   async function handleMagicLink() {
+    setOpen(false)
     setAction('magic')
     startTransition(async () => {
       const res = await resendMagicLinkToDirector(schoolId)
@@ -46,28 +57,8 @@ export default function SchoolActions({
     })
   }
 
-  async function handleDelete() {
-    const confirmed = window.prompt(
-      `Para eliminar "${schoolName}" escribe BORRAR. Esta acción es irreversible y borra todos sus datos.`
-    )
-    if (confirmed !== 'BORRAR') {
-      toast.info('Cancelado')
-      return
-    }
-    setAction('delete')
-    startTransition(async () => {
-      const res = await deleteSchool(schoolId)
-      if (res.error) {
-        toast.error(res.error)
-        setAction(null)
-        return
-      }
-      toast.success('Escuela eliminada')
-      router.push('/sysadmin/schools')
-    })
-  }
-
   async function handleImpersonate() {
+    setOpen(false)
     setAction('impersonate')
     startTransition(async () => {
       const res = await impersonateDirector(schoolId)
@@ -78,48 +69,57 @@ export default function SchoolActions({
     })
   }
 
+  async function handleDelete() {
+    setOpen(false)
+    const confirmed = window.prompt(
+      `Para eliminar "${schoolName}" escribe BORRAR. Esta acción es irreversible.`
+    )
+    if (confirmed !== 'BORRAR') { toast.info('Cancelado'); return }
+    setAction('delete')
+    startTransition(async () => {
+      const res = await deleteSchool(schoolId)
+      if (res.error) { toast.error(res.error); setAction(null); return }
+      toast.success('Escuela eliminada')
+      router.push('/sysadmin/schools')
+    })
+  }
+
   return (
-    <div className="flex flex-wrap gap-2">
-      <Button
-        variant="outline"
-        onClick={handleToggle}
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen(v => !v)}
         disabled={pending}
-        className="gap-2"
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-xk-border bg-xk-surface text-xs font-medium text-xk-text-secondary hover:bg-xk-subtle hover:text-xk-text disabled:opacity-50 transition-colors"
       >
-        {pending && action === 'toggle' ? <Loader2 size={14} className="animate-spin" /> : <Power size={14} />}
-        {isActive ? 'Pausar escuela' : 'Activar escuela'}
-      </Button>
+        {pending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <MoreHorizontal className="w-3.5 h-3.5" />}
+        Acciones
+      </button>
 
-      <Button
-        variant="outline"
-        onClick={handleMagicLink}
-        disabled={pending}
-        className="gap-2"
-      >
-        {pending && action === 'magic' ? <Loader2 size={14} className="animate-spin" /> : <Mail size={14} />}
-        Reenviar acceso a directora
-      </Button>
-
-      <Button
-        variant="outline"
-        onClick={handleImpersonate}
-        disabled={pending}
-        className="gap-2"
-        title="Abre una nueva pestaña con sesión de la directora. Cierra la pestaña para volver a Sysadmin."
-      >
-        {pending && action === 'impersonate' ? <Loader2 size={14} className="animate-spin" /> : <LogIn size={14} />}
-        Entrar como directora
-      </Button>
-
-      <Button
-        variant="outline"
-        onClick={handleDelete}
-        disabled={pending}
-        className="gap-2 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
-      >
-        {pending && action === 'delete' ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-        Eliminar escuela
-      </Button>
+      {open && (
+        <div className="absolute left-0 top-full mt-1 w-52 xk-surface-elevated shadow-lg rounded-xl overflow-hidden z-20 border border-xk-border/60">
+          <button onClick={handleToggle}
+            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-xk-text hover:bg-xk-subtle transition-colors text-left">
+            <Power className="w-4 h-4 text-xk-text-muted" />
+            {isActive ? 'Pausar escuela' : 'Activar escuela'}
+          </button>
+          <button onClick={handleMagicLink}
+            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-xk-text hover:bg-xk-subtle transition-colors text-left">
+            <Mail className="w-4 h-4 text-xk-text-muted" />
+            Reenviar acceso a directora
+          </button>
+          <button onClick={handleImpersonate}
+            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-xk-text hover:bg-xk-subtle transition-colors text-left">
+            <LogIn className="w-4 h-4 text-xk-text-muted" />
+            Entrar como directora
+          </button>
+          <div className="border-t border-xk-border/50" />
+          <button onClick={handleDelete}
+            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors text-left">
+            <Trash2 className="w-4 h-4" />
+            Eliminar escuela
+          </button>
+        </div>
+      )}
     </div>
   )
 }
