@@ -458,6 +458,95 @@ export async function getSchoolNotes(schoolId: string): Promise<SchoolNote[]> {
   })
 }
 
+// ─── getSysadminMetrics ───────────────────────────────────────────────────────
+
+export type SysadminMetrics = {
+  totalSchools:      number
+  activeSchools:     number
+  pendingSchools:    number
+  onboardingSchools: number
+  pausedSchools:     number
+  totalStudents:     number
+  mrrUsd:            number
+  recentSchools:     Array<{ id: string; name: string; city: string | null; status: Exclude<SchoolStatus, 'all'>; created_at: string; student_count: number }>
+  schoolsByMonth:    Array<{ month: string; count: number }>
+}
+
+export async function getSysadminMetrics(): Promise<SysadminMetrics> {
+  await requireSysadmin()
+  const admin = createAdminClient()
+
+  const { data: schools } = await admin
+    .from('schools')
+    .select('id, name, city, active, onboarding_completed, created_at')
+    .order('created_at', { ascending: true })
+
+  if (!schools || schools.length === 0) {
+    return { totalSchools: 0, activeSchools: 0, pendingSchools: 0, onboardingSchools: 0, pausedSchools: 0, totalStudents: 0, mrrUsd: 0, recentSchools: [], schoolsByMonth: [] }
+  }
+
+  const classified = schools.map((s) => ({ ...s, status: classify(s) }))
+
+  const activeSchools     = classified.filter((s) => s.status === 'active').length
+  const pendingSchools    = classified.filter((s) => s.status === 'pending').length
+  const onboardingSchools = classified.filter((s) => s.status === 'onboarding').length
+  const pausedSchools     = classified.filter((s) => s.status === 'paused').length
+
+  const { count: totalStudents } = await admin
+    .from('students')
+    .select('id', { count: 'exact', head: true })
+
+  // MRR: $7 USD por alumno activo (base rate)
+  const { count: activeStudents } = await admin
+    .from('students')
+    .select('id', { count: 'exact', head: true })
+    .in('school_id', classified.filter((s) => s.status === 'active').map((s) => s.id))
+
+  const mrrUsd = (activeStudents ?? 0) * 7
+
+  // Últimas 5 escuelas registradas
+  const recentIds = [...classified].reverse().slice(0, 5).map((s) => s.id)
+  const studentCountMap = new Map<string, number>()
+  for (const id of recentIds) {
+    const { count } = await admin.from('students').select('id', { count: 'exact', head: true }).eq('school_id', id)
+    studentCountMap.set(id, count ?? 0)
+  }
+  const recentSchools = [...classified]
+    .reverse()
+    .slice(0, 5)
+    .map((s) => ({ id: s.id, name: s.name, city: s.city, status: s.status, created_at: s.created_at, student_count: studentCountMap.get(s.id) ?? 0 }))
+
+  // Escuelas por mes (últimos 12 meses)
+  const monthMap = new Map<string, number>()
+  const now = new Date()
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    monthMap.set(key, 0)
+  }
+  for (const s of classified) {
+    const d = new Date(s.created_at)
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    if (monthMap.has(key)) monthMap.set(key, (monthMap.get(key) ?? 0) + 1)
+  }
+  const schoolsByMonth = Array.from(monthMap.entries()).map(([month, count]) => ({
+    month: new Date(month + '-01').toLocaleDateString('es-MX', { month: 'short', year: '2-digit' }),
+    count,
+  }))
+
+  return {
+    totalSchools:   schools.length,
+    activeSchools,
+    pendingSchools,
+    onboardingSchools,
+    pausedSchools,
+    totalStudents:  totalStudents ?? 0,
+    mrrUsd,
+    recentSchools,
+    schoolsByMonth,
+  }
+}
+
 // ─── addSchoolNote ────────────────────────────────────────────────────────────
 
 export async function addSchoolNote(schoolId: string, note: string): Promise<{ error: string | null }> {

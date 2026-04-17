@@ -12,6 +12,19 @@ interface ShellProps {
 
 export const SYSADMIN_NAV = [
   {
+    label: 'Dashboard',
+    href:  '/sysadmin',
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="3" width="7" height="7" rx="1"/>
+        <rect x="14" y="3" width="7" height="7" rx="1"/>
+        <rect x="3" y="14" width="7" height="7" rx="1"/>
+        <rect x="14" y="14" width="7" height="7" rx="1"/>
+      </svg>
+    ),
+  },
+  {
     label: 'Escuelas',
     href:  '/sysadmin/schools',
     icon: (
@@ -78,7 +91,7 @@ export default async function SysadminShell({ children, activeHref }: ShellProps
                 </svg>
               </div>
               <div>
-                <Link href="/sysadmin/schools" className="font-heading text-xl font-bold text-xk-accent leading-none hover:opacity-80 transition-opacity">Xokai</Link>
+                <Link href="/sysadmin" className="font-heading text-xl font-bold text-xk-accent leading-none hover:opacity-80 transition-opacity">Xokai</Link>
                 <p className="text-[10px] text-xk-text-secondary uppercase tracking-wider mt-0.5">
                   Panel Global
                 </p>
@@ -107,7 +120,7 @@ export default async function SysadminShell({ children, activeHref }: ShellProps
           <header className="h-16 shrink-0 bg-xk-card border-b border-xk-border flex items-center justify-between px-4 lg:px-6 z-10">
             <div className="flex items-center gap-2 lg:gap-3">
               <MobileNav items={[...SYSADMIN_NAV]} schoolName="Sysadmin" />
-              <Link href="/sysadmin/schools" className="font-heading text-xl font-bold text-xk-accent hover:opacity-80 transition-opacity">Xokai</Link>
+              <Link href="/sysadmin" className="font-heading text-xl font-bold text-xk-accent hover:opacity-80 transition-opacity">Xokai</Link>
               <span className="hidden sm:flex items-center gap-1.5">
                 <span className="w-px h-4 bg-xk-border" />
                 <span className="text-sm text-xk-text-secondary font-medium">Sysadmin</span>
