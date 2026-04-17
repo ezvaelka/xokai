@@ -54,3 +54,46 @@ Todos los agentes deben alinearse a su visión y escalar decisiones importantes 
 - Web: xokai.app
 - Email: hola@xokai.app
 - Ciudad: Guadalajara, México
+
+---
+
+## Learnings técnicos (patrones aprendidos en producción)
+
+### Auth / Supabase
+
+- **`emailRedirectTo` es obligatorio en `signUp()`**. Sin él, el correo de confirmación apunta al Site URL de Supabase (normalmente `/`), no al onboarding.
+  ```ts
+  emailRedirectTo: `${appUrl}/auth/confirm?next=${encodeURIComponent('/onboarding?type=director')}`
+  ```
+- **RLS policies en migraciones**: nunca usar funciones definidas en `schema.sql` (como `is_sysadmin()`). Usar subqueries inline:
+  ```sql
+  coalesce((select role = 'sysadmin' from user_profiles where id = auth.uid()), false)
+  ```
+- **Invite flow**: `inviteUserByEmail` + `redirectTo: ${appUrl}/auth/confirm?next=/onboarding`. El route `/auth/confirm` maneja tanto PKCE (`?code=`) como OTP (`?token_hash=`).
+
+### Next.js App Router
+
+- **Server actions re-renderizan el server component actual al completar**. Si el server component tiene un `redirect()` condicional, éste puede dispararse antes de que el cliente muestre el estado de éxito. Solución: navegar a una ruta diferente (`router.push('/nueva-ruta')`) desde el cliente antes de que ocurra el re-render. Los server actions que crean recursos deben redirigir a una página de confirmación separada, no mostrar éxito en la misma URL.
+- **`searchParams` en server components** requieren `await` en Next.js 14+: `const params = await searchParams`.
+- **Layouts dobles**: las rutas dentro de un layout group heredan el layout automáticamente. No volver a envolver en el shell dentro de `page.tsx`.
+
+### Modelo de datos (Supabase)
+
+- **Status de escuela** se deriva de dos columnas, no es un campo separado:
+  - `active:false + onboarding_completed:false` → `'onboarding'` (director no terminó)
+  - `active:false + onboarding_completed:true` → `'pending'` (esperando aprobación sysadmin)
+  - `active:true + onboarding_completed:true` → `'active'`
+  - `active:false` (manual) → `'paused'`
+- **`join_code`** de la escuela es el mecanismo de invitación para staff. Se genera en `completeOnboarding()` como `crypto.randomUUID().slice(0,8).toUpperCase()`. No usar el paquete `uuid` (no instalado) — usar `crypto.randomUUID()` nativo.
+- **Notificación a sysadmin**: usar Resend API via `fetch` (no SDK). Enviar `void notifySysadmin()` (best-effort, no bloquea el flujo principal).
+
+### UX / Producto
+
+- **Pantallas finales de flujo** siempre necesitan: (1) confirmación de qué pasó, (2) contexto del estado actual, (3) 2-3 próximos pasos accionables, (4) CTA primario.
+- **El onboarding es solo para directoras**. Staff se une vía `/onboarding?type=staff` o similar con el `join_code`. Pasar `?type=director` en el `emailRedirectTo` para saltarse la pantalla de elección.
+- **Correo de escuela en onboarding**: pre-llenar con el email del signup (`defaultValues: { email: userEmail }`). Son campos distintos pero el default es útil.
+
+### Git / Deploy
+
+- Para mergear sin PR: `git rebase origin/main && git push <PAT_URL> branch:main`
+- Vercel hace deploy automático al push a `main`.

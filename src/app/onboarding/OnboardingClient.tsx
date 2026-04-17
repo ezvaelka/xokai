@@ -9,7 +9,7 @@ import { toast }             from 'sonner'
 import {
   Loader2, Building2, FileText, Clock, CheckCircle2,
   ChevronRight, ChevronLeft, Upload, X, AlertCircle,
-  ArrowRight, Users, GraduationCap, User, MapPin, Key, Copy, Check,
+  ArrowRight, Users, GraduationCap, User, MapPin,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input }  from '@/components/ui/input'
@@ -113,9 +113,7 @@ export default function OnboardingClient({ userEmail, initialType }: Props) {
   const [logoUrl,    setLogoUrl]    = useState<string | null>(null)
   const [uploading,  setUploading]  = useState(false)
   const [submitting, setSubmitting] = useState(false)
-  const [success,    setSuccess]    = useState<{ schoolName: string; joinCode: string } | null>(null)
   const [staffDone,  setStaffDone]  = useState(false)
-  const [copied,     setCopied]     = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const [nameData,    setNameData]    = useState<NameForm | null>(null)
@@ -126,7 +124,7 @@ export default function OnboardingClient({ userEmail, initialType }: Props) {
 
   const fName    = useForm<NameForm>   ({ resolver: zodResolver(nameSchema)     })
   const fSchool  = useForm<SchoolForm> ({ resolver: zodResolver(schoolNameSchema) })
-  const fDetails = useForm<DetailsForm>({ resolver: zodResolver(detailsSchema)  })
+  const fDetails = useForm<DetailsForm>({ resolver: zodResolver(detailsSchema), defaultValues: { email: userEmail } })
   const fFiscal  = useForm<FiscalForm> ({ resolver: zodResolver(fiscalSchema), defaultValues: { regimenFiscal: '' } })
   const fPickup  = useForm<PickupForm> ({ resolver: zodResolver(pickupSchema),  defaultValues: { pickupTolerancia: 10 } })
   const fJoin    = useForm<JoinForm>   ({ resolver: zodResolver(joinSchema)     })
@@ -163,7 +161,10 @@ export default function OnboardingClient({ userEmail, initialType }: Props) {
       pickupTolerancia: pickupData?.pickupTolerancia ?? 10,
     })
     if (result.error) { toast.error(result.error); setSubmitting(false); return }
-    setSuccess({ schoolName: schoolData.nombre, joinCode: result.joinCode ?? '' })
+    // Navigate to dedicated success page to avoid server component redirect race
+    router.push(
+      `/onboarding/success?name=${encodeURIComponent(schoolData.nombre)}&code=${encodeURIComponent(result.joinCode ?? '')}`
+    )
   }
 
   async function handleJoin(values: JoinForm) {
@@ -205,80 +206,30 @@ export default function OnboardingClient({ userEmail, initialType }: Props) {
     )
   }
 
-  // ─── Director success ──────────────────────────────────────────────────────
-
-  if (success) return (
-    <div className="min-h-screen bg-xk-bg flex flex-col">
-      <Header subtitle="¡Solicitud enviada!" />
-      <div className="flex-1 flex items-center justify-center px-4 py-12">
-        <div className="w-full max-w-lg text-center">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-xk-accent-light mb-5 ring-8 ring-xk-accent-light/50">
-            <CheckCircle2 size={40} className="text-xk-accent" />
-          </div>
-          <h1 className="font-heading text-3xl font-bold text-xk-text mb-2">¡{success.schoolName} fue registrada!</h1>
-          <p className="text-xk-text-secondary mb-6">
-            Estamos revisando tu solicitud. Te notificaremos cuando tu escuela esté activa.
-            Mientras tanto ya puedes configurar alumnos y grupos.
-          </p>
-
-          {/* Join code */}
-          {success.joinCode && (
-            <div className="bg-xk-card border border-xk-border rounded-2xl p-5 mb-6 text-left">
-              <p className="text-xs font-semibold text-xk-text-muted uppercase tracking-wider mb-3 flex items-center gap-1.5">
-                <Key size={12} /> Código de acceso para tu equipo
-              </p>
-              <div className="flex items-center gap-3 mb-2">
-                <span className="font-mono text-3xl font-bold text-xk-text tracking-[0.2em]">
-                  {success.joinCode}
-                </span>
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(success.joinCode)
-                    setCopied(true)
-                    setTimeout(() => setCopied(false), 2000)
-                  }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-xk-subtle border border-xk-border text-xs font-medium text-xk-text-secondary hover:text-xk-accent hover:border-xk-accent transition-colors"
-                >
-                  {copied ? <Check size={12} /> : <Copy size={12} />}
-                  {copied ? 'Copiado' : 'Copiar'}
-                </button>
-              </div>
-              <p className="text-xs text-xk-text-muted">
-                Compártelo con maestros y staff para que se unan a tu escuela en Xokai.
-                También lo encuentras en tu perfil.
-              </p>
-            </div>
-          )}
-
-          <div className="bg-xk-card rounded-2xl border border-xk-border shadow-sm overflow-hidden mb-6">
-            <div className="px-6 py-4 border-b border-xk-border bg-xk-subtle">
-              <p className="text-xs font-semibold text-xk-text-muted uppercase tracking-wider">Próximos pasos</p>
-            </div>
-            <div className="divide-y divide-xk-border">
-              <NextStepBtn icon={GraduationCap} label="Registrar alumnos" sub="Importa o agrega alumnos" onClick={() => router.push('/dashboard/alumnos')} />
-              <NextStepBtn icon={Users} label="Invitar a tu equipo" sub="Comparte el código con maestros y staff" onClick={() => router.push('/dashboard/configuracion/usuarios')} />
-            </div>
-          </div>
-          <Button onClick={() => router.push('/dashboard')} className="w-full h-11 gap-2">
-            Ir al dashboard <ArrowRight size={16} />
-          </Button>
-        </div>
-      </div>
-    </div>
-  )
-
   // ─── Staff success ─────────────────────────────────────────────────────────
 
   if (staffDone) return (
     <div className="min-h-screen bg-xk-bg flex flex-col">
-      <Header />
+      <Header subtitle="¡Ya eres parte del equipo!" />
       <div className="flex-1 flex items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md text-center">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-xk-accent-light mb-5 ring-8 ring-xk-accent-light/50">
-            <CheckCircle2 size={40} className="text-xk-accent" />
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-xk-accent-light mb-5 ring-8 ring-xk-accent-light/50">
+              <CheckCircle2 size={40} className="text-xk-accent" />
+            </div>
+            <h1 className="font-heading text-3xl font-bold text-xk-text mb-3">¡Bienvenido a Xokai!</h1>
+            <p className="text-xk-text-secondary leading-relaxed">
+              Tu cuenta está vinculada a la escuela. Ya puedes ver tus grupos, alumnos y comunicados desde el dashboard.
+            </p>
           </div>
-          <h1 className="font-heading text-3xl font-bold text-xk-text mb-2">¡Bienvenido a Xokai!</h1>
-          <p className="text-xk-text-secondary mb-8">Ya tienes acceso a tu escuela. Entra al dashboard para comenzar.</p>
+          <div className="bg-xk-card border border-xk-border rounded-2xl p-4 mb-6">
+            <p className="text-xs font-semibold text-xk-text-muted uppercase tracking-wider mb-3">Desde el dashboard puedes</p>
+            <ul className="space-y-2 text-sm text-xk-text-secondary">
+              <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-xk-accent shrink-0" />Ver tus grupos y alumnos asignados</li>
+              <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-xk-accent shrink-0" />Leer y enviar comunicados a padres</li>
+              <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-xk-accent shrink-0" />Gestionar el módulo de pickup</li>
+            </ul>
+          </div>
           <Button onClick={() => { router.push('/dashboard'); router.refresh() }} className="w-full h-11 gap-2">
             Ir al dashboard <ArrowRight size={16} />
           </Button>
@@ -607,7 +558,7 @@ export default function OnboardingClient({ userEmail, initialType }: Props) {
                 <Button type="button" variant="outline" onClick={() => setStep(5)} className="gap-2"><ChevronLeft size={16} /> Atrás</Button>
                 <Button onClick={handleFinish} disabled={submitting} className="gap-2 bg-xk-accent hover:bg-xk-accent-dark">
                   {submitting && <Loader2 size={14} className="animate-spin" />}
-                  {submitting ? 'Activando…' : '¡Activar mi escuela!'}
+                  {submitting ? 'Enviando…' : 'Enviar solicitud'}
                 </Button>
               </div>
             </div>
@@ -635,20 +586,6 @@ function Header({ subtitle }: { subtitle?: string }) {
   )
 }
 
-function NextStepBtn({ icon: Icon, label, sub, onClick }: { icon: any; label: string; sub: string; onClick: () => void }) {
-  return (
-    <button onClick={onClick} className="w-full flex items-center gap-4 px-6 py-4 hover:bg-xk-subtle transition-colors text-left group">
-      <div className="w-10 h-10 rounded-xl bg-xk-accent-light flex items-center justify-center shrink-0 group-hover:bg-xk-accent transition-colors">
-        <Icon size={18} className="text-xk-accent group-hover:text-white transition-colors" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="font-semibold text-sm text-xk-text">{label}</p>
-        <p className="text-xs text-xk-text-muted mt-0.5">{sub}</p>
-      </div>
-      <ArrowRight size={16} className="text-xk-text-muted group-hover:text-xk-accent transition-colors shrink-0" />
-    </button>
-  )
-}
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
