@@ -41,6 +41,13 @@ Conecta a la escuela con cada familia a través de una sola plataforma.
 **Ez** es el CEO y fundador. Toma las decisiones finales de producto, negocio y estrategia.
 Todos los agentes deben alinearse a su visión y escalar decisiones importantes a él.
 
+## Flujo de trabajo Git
+
+- **Siempre trabajar en feature branches** — nunca commitear directo a `main`
+- **Siempre crear un PR** antes de mergear a `main`, incluso para fixes pequeños
+- **Mergear via PR** (no `git push branch:main`) para mantener historial limpio en GitHub
+- La rama de trabajo por defecto del agente es `claude/debug-google-login-RlRJ0` hasta que se cree una nueva
+
 ## Reglas globales para todos los agentes
 - Siempre TypeScript — nunca JavaScript plano
 - Siempre RLS activado en todas las tablas de Supabase
