@@ -616,3 +616,46 @@ curl -X PUT -H "Authorization: token $PAT" https://api.github.com/repos/ezvaelka
 | MetricCard | `src/components/ui/metric-card.tsx` |
 | StatusBadge | `src/components/ui/status-badge.tsx` |
 | Server actions | `src/app/actions/` |
+
+---
+
+## Competitive Intelligence — SchoolCloud
+
+### Pagos y Facturación
+- Hábitat tiene 2 razones sociales para facturación:
+  LORIS MALAGUZZI LEARNING COMMUNITY y
+  LORIS MALAGUZZI LEARNING COMMUNITY II
+- Xokai debe soportar múltiples entidades fiscales por escuela
+- Hoy los padres tienen que seleccionar a qué "empresa" pagar
+  — confuso y con 4+ clicks para completar un pago
+- Xokai: pagos en máximo 2 clicks
+
+### Comunicados
+- Hoy usan WhatsApp grupos + emails masivos con todos
+  los contactos expuestos (cero privacidad)
+- Directoras comparten lista completa de emails de familias
+- Avisos importantes se pierden entre mensajes de WhatsApp
+- Sin historial, sin confirmación de lectura
+
+- Xokai reemplaza:
+  · Grupos de WhatsApp por grado/grupo
+  · Emails masivos con destinatarios expuestos
+  · Google Forms para eventos y permisos
+  · PDFs circulares enviados por WhatsApp
+
+- Módulo de comunicados debe tener:
+  · Adjuntos (PDF, imagen, link externo)
+  · RSVP simple embebido (¿asistirá? Sí/No)
+  · Segmentación por grupo, grado o toda la escuela
+  · Push notification + email como fallback
+  · Confirmación de lectura visible para directora
+  · Historial permanente y buscable
+
+### Ventajas Xokai vs SchoolCloud
+- Login por email — no número de usuario
+- Mobile-first — SchoolCloud no funciona en celular
+- Pagos en 2 clicks — no en 4+ pasos con selección de empresa
+- Documentos con estado visual claro (firmado/pendiente)
+- Sin modals de aviso innecesarios
+- Comunicados privados — cada padre ve solo su info
+- Sin exponer emails ni teléfonos entre familias
