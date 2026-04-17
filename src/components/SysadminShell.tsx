@@ -1,7 +1,9 @@
 import { redirect }       from 'next/navigation'
+import Link               from 'next/link'
 import { createClient }   from '@/lib/supabase/server'
 import DashboardLogout    from '@/components/DashboardLogout'
 import SysadminNav        from '@/components/SysadminNav'
+import MobileNav          from '@/components/MobileNav'
 
 interface ShellProps {
   children:   React.ReactNode
@@ -76,7 +78,7 @@ export default async function SysadminShell({ children, activeHref }: ShellProps
                 </svg>
               </div>
               <div>
-                <p className="font-heading text-xl font-bold text-xk-accent leading-none">Xokai</p>
+                <Link href="/sysadmin/schools" className="font-heading text-xl font-bold text-xk-accent leading-none hover:opacity-80 transition-opacity">Xokai</Link>
                 <p className="text-[10px] text-xk-text-secondary uppercase tracking-wider mt-0.5">
                   Panel Global
                 </p>
@@ -104,7 +106,8 @@ export default async function SysadminShell({ children, activeHref }: ShellProps
         <div className="xk-main">
           <header className="h-16 shrink-0 bg-xk-card border-b border-xk-border flex items-center justify-between px-4 lg:px-6 z-10">
             <div className="flex items-center gap-2 lg:gap-3">
-              <span className="font-heading text-xl font-bold text-xk-accent">Xokai</span>
+              <MobileNav items={[...SYSADMIN_NAV]} schoolName="Sysadmin" />
+              <Link href="/sysadmin/schools" className="font-heading text-xl font-bold text-xk-accent hover:opacity-80 transition-opacity">Xokai</Link>
               <span className="hidden sm:flex items-center gap-1.5">
                 <span className="w-px h-4 bg-xk-border" />
                 <span className="text-sm text-xk-text-secondary font-medium">Sysadmin</span>

@@ -188,7 +188,11 @@ export default async function DashboardShell({ children, activeHref }: ShellProp
               <div>
                 <p className="font-heading text-xl font-bold text-xk-accent leading-none">Xokai</p>
                 <p className="text-[10px] text-xk-text-secondary uppercase tracking-wider mt-0.5">
-                  {role === 'sysadmin' ? 'Sysadmin' : 'Admin'}
+                  {{
+                    sysadmin: 'Sysadmin', admin: 'Admin', director: 'Directora',
+                    teacher: 'Maestro', maestro: 'Maestro', portero: 'Portero',
+                    coordinador: 'Coordinador', finanzas: 'Finanzas', guardian: 'Padre',
+                  }[role] ?? 'Usuario'}
                 </p>
               </div>
             </div>
