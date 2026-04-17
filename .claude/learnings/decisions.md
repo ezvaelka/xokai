@@ -27,7 +27,26 @@ Registro de decisiones arquitectónicas y técnicas tomadas durante el desarroll
   - Acciones: DropdownMenu con Editar + ConfirmDialog para toggle activo
 
 ## C4 — Git / Deploy
-- Remote URL usa PAT directo: https://[PAT]@github.com/ezvaelka/xokai.git
-- PAT guardado en ~/.claude/.github-pat
-- Stop hook auto-crea PR y mergea via curl cuando detecta rama sin PR abierto
+- Push via PAT directo en URL (proxy local y MCP GitHub dan 403 en escritura)
+- Flujo: feature branch → push → PR via curl → merge via curl
+- Siempre sincronizar tracking refs locales después de push con PAT
 - Verificar PR mergeado (state=closed + merged_at != null) para evitar falsos positivos
+
+## C5 — Auth flow (self-serve con aprobación)
+- Signup → email confirmación → `/auth/confirm?next=/onboarding?type=director` → onboarding wizard
+- Onboarding crea escuela con `active:false, onboarding_completed:true` (= status `pending`)
+- Sysadmin aprueba → `active:true` → escuela operativa
+- Director ve banner "en revisión" mientras `!school.active`
+- `join_code` generado al completar onboarding — visible en success screen y en `/dashboard/perfil`
+- Sysadmin recibe email (Resend, best-effort) con link directo al detalle de la escuela
+
+## C6 — Comunicados
+- Bucket Supabase Storage: `announcement-images` (público)
+- Soporta: imagen, link a formulario externo (Google/Microsoft), segmento (escuela/grupo)
+- Server actions en `src/app/actions/announcements.ts`
+- RLS: staff de la escuela puede crear/leer/borrar; guardians solo leen (futuro)
+
+## C7 — Notas internas sysadmin
+- Tabla `school_notes` (append-only) con author_id y created_at
+- Visible solo para sysadmin vía RLS inline
+- UI: lista de notas con autor + timestamp relativo + formulario al final
