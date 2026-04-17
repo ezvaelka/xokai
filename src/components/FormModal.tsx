@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import { Loader2 } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -11,6 +12,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 
 interface FormModalProps {
@@ -83,14 +85,18 @@ export function FormModal({
   return (
     <Dialog open={isOpen} onOpenChange={setOpen}>
       {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
-      <DialogContent className={cn(SIZE_MAP[size], className)}>
-        <DialogHeader>
+      <DialogContent className={cn('p-0 gap-0 overflow-hidden', SIZE_MAP[size], className)}>
+        <DialogHeader className="px-6 pt-5 pb-0">
           <DialogTitle>{title}</DialogTitle>
           {description && <DialogDescription>{description}</DialogDescription>}
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 py-1">
-          {children}
+        <Separator className="mt-4" />
+
+        <form onSubmit={handleSubmit} className="px-6 pb-6 space-y-4">
+          <div className="space-y-4 pt-4">
+            {children}
+          </div>
 
           <DialogFooter className="pt-2">
             <Button
@@ -101,8 +107,15 @@ export function FormModal({
             >
               {cancelLabel}
             </Button>
-            <Button type="submit" disabled={submitting}>
-              {submitting ? 'Guardando...' : submitLabel}
+            <Button type="submit" disabled={submitting} className="min-w-[100px]">
+              {submitting ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Guardando…
+                </span>
+              ) : (
+                submitLabel
+              )}
             </Button>
           </DialogFooter>
         </form>
