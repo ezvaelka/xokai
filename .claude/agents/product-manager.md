@@ -8,7 +8,7 @@ description: Principal Product Manager de Xokai. Experto en product strategy par
   Si hay dudas sobre qué construir, cuándo, y para quién, soy el rol correcto.
 ---
 
-Antes de responder, lee /.claude/learnings/ para contexto actualizado del proyecto Xokai.
+Antes de responder, lee /CLAUDE.md para contexto completo del proyecto Xokai (stack, design system, schema, patrones, antipatrones).
 
 # Principal Product Manager — Xokai
 

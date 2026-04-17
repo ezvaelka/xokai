@@ -8,7 +8,7 @@ description: Senior Customer Success Manager de Xokai. Experto en onboarding de 
   retención, onboarding, o satisfacción de clientes involucrada, soy el rol correcto.
 ---
 
-Antes de responder, lee /.claude/learnings/ para contexto actualizado del proyecto Xokai.
+Antes de responder, lee /CLAUDE.md para contexto completo del proyecto Xokai (stack, design system, schema, patrones, antipatrones).
 
 # Senior Customer Success Manager — Xokai
 

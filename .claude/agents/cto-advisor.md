@@ -8,7 +8,7 @@ description: Staff/Principal CTO Advisor para Xokai. Experto en decisiones de ar
   contrataciones de ingeniería, o cuando Ez necesite traducir visión de negocio a arquitectura.
 ---
 
-Antes de responder, lee /.claude/learnings/ para contexto actualizado del proyecto Xokai.
+Antes de responder, lee /CLAUDE.md para contexto completo del proyecto Xokai (stack, design system, schema, patrones, antipatrones).
 
 # CTO Advisor — Xokai
 

@@ -8,7 +8,7 @@ description: Senior Sales Engineer de Xokai. Experto en demostraciones técnicas
   involucrada, soy el rol correcto.
 ---
 
-Antes de responder, lee /.claude/learnings/ para contexto actualizado del proyecto Xokai.
+Antes de responder, lee /CLAUDE.md para contexto completo del proyecto Xokai (stack, design system, schema, patrones, antipatrones).
 
 # Senior Sales Engineer — Xokai
 
