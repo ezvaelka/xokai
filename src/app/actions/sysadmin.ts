@@ -7,6 +7,31 @@ import { createAdminClient } from '@/lib/supabase/admin'
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
 export type SchoolStatus = 'active' | 'onboarding' | 'paused' | 'pending' | 'all'
+export type SchoolPlan   = 'trial' | 'base' | 'base_pickup' | 'suspended' | 'churned'
+
+export const PLAN_LABELS: Record<SchoolPlan, string> = {
+  trial:        'Trial',
+  base:         'Base · $7/alumno',
+  base_pickup:  'Base + Pickup · $9/alumno',
+  suspended:    'Suspendida',
+  churned:      'Churned',
+}
+
+export const PLAN_RATE_USD: Record<SchoolPlan, number> = {
+  trial:        0,
+  base:         7,
+  base_pickup:  9,
+  suspended:    0,
+  churned:      0,
+}
+
+export type ActivityLogEntry = {
+  id:         string
+  action:     string
+  payload:    Record<string, unknown> | null
+  actor_name: string | null
+  created_at: string
+}
 
 export type SchoolNote = {
   id:           string
@@ -28,6 +53,10 @@ export type SchoolListItem = {
   director_email:        string | null
   student_count:         number
   status:                Exclude<SchoolStatus, 'all'>
+  plan:                  SchoolPlan
+  trial_ends_at:         string | null
+  suspended_at:          string | null
+  mrr_usd:               number
 }
 
 export type SchoolDetail = {
@@ -95,7 +124,7 @@ export async function listSchools(status: SchoolStatus = 'all'): Promise<SchoolL
 
   const { data: schools, error } = await admin
     .from('schools')
-    .select('id, name, city, email, active, onboarding_completed, created_at')
+    .select('id, name, city, email, active, onboarding_completed, created_at, plan, trial_ends_at, suspended_at')
     .order('created_at', { ascending: false })
 
   if (error) throw new Error(error.message)
@@ -137,7 +166,9 @@ export async function listSchools(status: SchoolStatus = 'all'): Promise<SchoolL
   }
 
   const result: SchoolListItem[] = schools.map((s) => {
-    const director = directorByEmail.get(s.id)
+    const director     = directorByEmail.get(s.id)
+    const studentCount = studentCounts.get(s.id) ?? 0
+    const plan         = (s.plan ?? 'trial') as SchoolPlan
     return {
       id:                   s.id,
       name:                 s.name,
@@ -148,8 +179,12 @@ export async function listSchools(status: SchoolStatus = 'all'): Promise<SchoolL
       created_at:           s.created_at,
       director_name:        director?.name ?? null,
       director_email:       director?.email ?? null,
-      student_count:        studentCounts.get(s.id) ?? 0,
+      student_count:        studentCount,
       status:               classify(s),
+      plan,
+      trial_ends_at:        s.trial_ends_at ?? null,
+      suspended_at:         s.suspended_at ?? null,
+      mrr_usd:              studentCount * (PLAN_RATE_USD[plan] ?? 0),
     }
   })
 
@@ -545,6 +580,108 @@ export async function getSysadminMetrics(): Promise<SysadminMetrics> {
     recentSchools,
     schoolsByMonth,
   }
+}
+
+// ─── addSchoolNote ────────────────────────────────────────────────────────────
+
+// ─── updateSchoolPlan ─────────────────────────────────────────────────────────
+
+export async function updateSchoolPlan(schoolId: string, plan: SchoolPlan) {
+  const user = await requireSysadmin()
+  const admin = createAdminClient()
+
+  const updates: Record<string, unknown> = { plan }
+  if (plan === 'suspended') updates.suspended_at = new Date().toISOString()
+  if (plan !== 'suspended') updates.suspended_at = null
+
+  const { error } = await admin.from('schools').update(updates).eq('id', schoolId)
+  if (error) return { error: error.message }
+
+  await logActivityInternal(admin, schoolId, user.id, 'plan_changed', { plan })
+  revalidatePath('/sysadmin/schools')
+  revalidatePath(`/sysadmin/schools/${schoolId}`)
+  return { error: null }
+}
+
+// ─── extendTrial ──────────────────────────────────────────────────────────────
+
+export async function extendTrial(schoolId: string, days: number) {
+  const user = await requireSysadmin()
+  const admin = createAdminClient()
+
+  const { data: school } = await admin.from('schools').select('trial_ends_at').eq('id', schoolId).single()
+  const base = school?.trial_ends_at ? new Date(school.trial_ends_at) : new Date()
+  const newEnd = new Date(base.getTime() + days * 86_400_000)
+
+  const { error } = await admin.from('schools').update({
+    plan: 'trial',
+    trial_ends_at: newEnd.toISOString(),
+  }).eq('id', schoolId)
+
+  if (error) return { error: error.message }
+
+  await logActivityInternal(admin, schoolId, user.id, 'trial_extended', { days, new_end: newEnd.toISOString() })
+  revalidatePath(`/sysadmin/schools/${schoolId}`)
+  return { error: null }
+}
+
+// ─── updateSchoolFeatureFlags ─────────────────────────────────────────────────
+
+export async function updateSchoolFeatureFlags(schoolId: string, flags: Record<string, boolean>) {
+  const user = await requireSysadmin()
+  const admin = createAdminClient()
+
+  const { error } = await admin.from('schools').update({ feature_flags: flags }).eq('id', schoolId)
+  if (error) return { error: error.message }
+
+  await logActivityInternal(admin, schoolId, user.id, 'feature_flags_updated', { flags })
+  revalidatePath(`/sysadmin/schools/${schoolId}`)
+  return { error: null }
+}
+
+// ─── getActivityLog ───────────────────────────────────────────────────────────
+
+export async function getActivityLog(schoolId: string): Promise<ActivityLogEntry[]> {
+  await requireSysadmin()
+  const admin = createAdminClient()
+
+  const { data: logs } = await admin
+    .from('school_activity_log')
+    .select('id, action, payload, actor_id, created_at')
+    .eq('school_id', schoolId)
+    .order('created_at', { ascending: false })
+    .limit(50)
+
+  if (!logs || logs.length === 0) return []
+
+  const actorIds = [...new Set(logs.map((l) => l.actor_id).filter(Boolean))]
+  const actorNames = new Map<string, string>()
+  for (const id of actorIds) {
+    const { data: p } = await admin.from('user_profiles').select('first_name, last_name').eq('id', id).single()
+    if (p) actorNames.set(id, [p.first_name, p.last_name].filter(Boolean).join(' ').trim() || id)
+  }
+
+  return logs.map((l) => ({
+    id:         l.id,
+    action:     l.action,
+    payload:    (l.payload as Record<string, unknown>) ?? null,
+    actor_name: l.actor_id ? (actorNames.get(l.actor_id) ?? null) : null,
+    created_at: l.created_at,
+  }))
+}
+
+// ─── logActivityInternal (helper privado) ─────────────────────────────────────
+
+async function logActivityInternal(
+  admin: ReturnType<typeof createAdminClient>,
+  schoolId: string,
+  actorId: string,
+  action: string,
+  payload?: Record<string, unknown>,
+) {
+  try {
+    await admin.from('school_activity_log').insert({ school_id: schoolId, actor_id: actorId, action, payload: payload ?? null })
+  } catch { /* best-effort */ }
 }
 
 // ─── addSchoolNote ────────────────────────────────────────────────────────────
