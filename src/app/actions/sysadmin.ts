@@ -7,7 +7,8 @@ import { PLAN_RATE_USD, type SchoolPlan } from '@/lib/sysadmin-constants'
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
-export type SchoolStatus = 'active' | 'onboarding' | 'paused' | 'pending' | 'all'
+export type ClassifyStatus = 'active' | 'onboarding' | 'paused' | 'pending'
+export type SchoolStatus   = ClassifyStatus | 'trial' | 'churned' | 'all'
 export type { SchoolPlan } from '@/lib/sysadmin-constants'
 
 export type ActivityLogEntry = {
@@ -30,6 +31,7 @@ export type SchoolListItem = {
   id:                    string
   name:                  string
   city:                  string | null
+  state:                 string | null
   email:                 string | null
   active:                boolean
   onboarding_completed:  boolean
@@ -37,7 +39,7 @@ export type SchoolListItem = {
   director_name:         string | null
   director_email:        string | null
   student_count:         number
-  status:                Exclude<SchoolStatus, 'all'>
+  status:                ClassifyStatus
   plan:                  SchoolPlan
   trial_ends_at:         string | null
   suspended_at:          string | null
@@ -69,7 +71,7 @@ export type SchoolDetail = {
     internal_notes:        string | null
     created_at:            string
   }
-  status:       Exclude<SchoolStatus, 'all'>
+  status:       ClassifyStatus
   users:        Array<{ id: string; email: string | null; first_name: string | null; last_name: string | null; role: string }>
   studentCount: number
   groupCount:   number
@@ -94,7 +96,7 @@ async function requireSysadmin() {
   return user
 }
 
-function classify(s: { active: boolean; onboarding_completed: boolean }): Exclude<SchoolStatus, 'all'> {
+function classify(s: { active: boolean; onboarding_completed: boolean }): ClassifyStatus {
   if (!s.active && s.onboarding_completed)  return 'pending'
   if (!s.active)                             return 'paused'
   if (!s.onboarding_completed)               return 'onboarding'
@@ -109,7 +111,7 @@ export async function listSchools(status: SchoolStatus = 'all'): Promise<SchoolL
 
   const { data: schools, error } = await admin
     .from('schools')
-    .select('id, name, city, email, active, onboarding_completed, created_at, plan, trial_ends_at, suspended_at')
+    .select('id, name, city, state, email, active, onboarding_completed, created_at, plan, trial_ends_at, suspended_at')
     .order('created_at', { ascending: false })
 
   if (error) throw new Error(error.message)
@@ -158,6 +160,7 @@ export async function listSchools(status: SchoolStatus = 'all'): Promise<SchoolL
       id:                   s.id,
       name:                 s.name,
       city:                 s.city,
+      state:                s.state ?? null,
       email:                s.email,
       active:               s.active,
       onboarding_completed: s.onboarding_completed,
@@ -174,6 +177,8 @@ export async function listSchools(status: SchoolStatus = 'all'): Promise<SchoolL
   })
 
   if (status === 'all') return result
+  if (status === 'trial')   return result.filter((s) => s.plan === 'trial')
+  if (status === 'churned') return result.filter((s) => s.plan === 'churned')
   return result.filter((s) => s.status === status)
 }
 
@@ -488,7 +493,7 @@ export type SysadminMetrics = {
   pausedSchools:     number
   totalStudents:     number
   mrrUsd:            number
-  recentSchools:     Array<{ id: string; name: string; city: string | null; status: Exclude<SchoolStatus, 'all'>; created_at: string; student_count: number }>
+  recentSchools:     Array<{ id: string; name: string; city: string | null; status: ClassifyStatus; created_at: string; student_count: number }>
   schoolsByMonth:    Array<{ month: string; count: number }>
 }
 

@@ -1,16 +1,18 @@
+import { Suspense }                       from 'react'
 import Link                               from 'next/link'
-import { Plus }                           from 'lucide-react'
+import { Plus, Search }                   from 'lucide-react'
 import { listSchools, type SchoolStatus } from '@/app/actions/sysadmin'
 import SchoolsFilters                     from './SchoolsFilters'
 import SchoolsTable                       from './SchoolsTable'
 
 function parseStatus(value: string | string[] | undefined): SchoolStatus {
   const v = Array.isArray(value) ? value[0] : value
-  if (v === 'active' || v === 'onboarding' || v === 'paused' || v === 'pending') return v
+  if (v === 'active' || v === 'onboarding' || v === 'paused' || v === 'pending'
+    || v === 'trial' || v === 'churned') return v
   return 'all'
 }
 
-function parseCity(value: string | string[] | undefined): string {
+function parseState(value: string | string[] | undefined): string {
   const v = Array.isArray(value) ? value[0] : value
   return v ?? ''
 }
@@ -18,31 +20,42 @@ function parseCity(value: string | string[] | undefined): string {
 export default async function SysadminSchoolsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; city?: string }>
+  searchParams: Promise<{ status?: string; state?: string }>
 }) {
-  const params      = await searchParams
-  const status      = parseStatus(params.status)
-  const currentCity = parseCity(params.city)
-  const all         = await listSchools('all')
+  const params       = await searchParams
+  const status       = parseStatus(params.status)
+  const currentState = parseState(params.state)
+  const all          = await listSchools('all')
 
   const schools = all.filter((s) => {
-    const matchStatus = status === 'all' || s.status === status
-    const matchCity   = !currentCity || s.city === currentCity
-    return matchStatus && matchCity
+    const matchStatus =
+      status === 'all'     ? true :
+      status === 'trial'   ? s.plan === 'trial' :
+      status === 'churned' ? s.plan === 'churned' :
+      s.status === status
+    const matchLocation = !currentState
+      || s.state === currentState
+      || s.city  === currentState
+    return matchStatus && matchLocation
   })
 
-  const counts   = {
+  const counts: Record<SchoolStatus, number> = {
+    all:        all.length,
     active:     all.filter((s) => s.status === 'active').length,
+    trial:      all.filter((s) => s.plan   === 'trial').length,
     pending:    all.filter((s) => s.status === 'pending').length,
     onboarding: all.filter((s) => s.status === 'onboarding').length,
     paused:     all.filter((s) => s.status === 'paused').length,
+    churned:    all.filter((s) => s.plan   === 'churned').length,
   }
+
   const totalMrr = all.reduce((sum, s) => sum + (s.mrr_usd ?? 0), 0)
-  const cities   = [...new Set(all.map((s) => s.city).filter((c): c is string => Boolean(c)))].sort()
+  const hasFilters = status !== 'all' || currentState !== ''
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
+      {/* Header — mobile: stacked; desktop: row */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <div>
           <p className="text-xs font-medium text-xk-text-muted uppercase tracking-widest mb-1">Sysadmin</p>
           <h1 className="text-2xl font-semibold tracking-tight text-xk-text">Escuelas</h1>
@@ -51,27 +64,45 @@ export default async function SysadminSchoolsPage({
             {totalMrr > 0 && <> · <span className="text-emerald-700 font-medium xk-num">${totalMrr} MRR</span></>}
           </p>
         </div>
-        <Link href="/sysadmin/schools/new"
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-xk-accent text-white text-sm font-medium hover:bg-xk-accent-dark transition-colors shadow-sm shrink-0">
+        <Link
+          href="/sysadmin/schools/new"
+          className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-lg bg-xk-accent text-white text-sm font-medium hover:bg-xk-accent-dark transition-colors shadow-sm sm:shrink-0"
+        >
           <Plus className="w-4 h-4" />Nueva escuela
         </Link>
       </div>
 
-      <SchoolsFilters
-        currentStatus={status}
-        currentCity={currentCity}
-        cities={cities}
-        counts={{ all: all.length, ...counts }}
-      />
+      <Suspense>
+        <SchoolsFilters
+          currentStatus={status}
+          currentState={currentState}
+          counts={counts}
+        />
+      </Suspense>
 
       {schools.length === 0 ? (
-        <div className="xk-surface-elevated p-12 text-center xk-grid-bg">
-          <p className="text-sm font-medium text-xk-text mb-1">Sin resultados</p>
-          <p className="text-xs text-xk-text-muted mb-4">
-            {status === 'all' && !currentCity ? 'No hay escuelas registradas.' : 'Prueba con otros filtros.'}
+        <div className="xk-surface-elevated p-10 sm:p-14 text-center xk-grid-bg rounded-xl">
+          <div className="w-12 h-12 rounded-xl bg-xk-subtle flex items-center justify-center mx-auto mb-4">
+            <Search className="w-5 h-5 text-xk-text-muted" />
+          </div>
+          <p className="text-sm font-medium text-xk-text mb-1">
+            {hasFilters ? 'Sin escuelas con estos filtros' : 'No hay escuelas registradas'}
           </p>
-          {status === 'all' && !currentCity && (
-            <Link href="/sysadmin/schools/new" className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-xk-accent text-white text-sm font-medium hover:bg-xk-accent-dark transition-colors">
+          <p className="text-xs text-xk-text-muted mb-5">
+            {hasFilters ? 'Prueba con otros filtros.' : 'Agrega la primera escuela para comenzar.'}
+          </p>
+          {hasFilters ? (
+            <Link
+              href="/sysadmin/schools"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-xk-accent text-white text-sm font-medium hover:bg-xk-accent-dark transition-colors"
+            >
+              Eliminar filtros
+            </Link>
+          ) : (
+            <Link
+              href="/sysadmin/schools/new"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-xk-accent text-white text-sm font-medium hover:bg-xk-accent-dark transition-colors"
+            >
               <Plus className="w-4 h-4" /> Nueva escuela
             </Link>
           )}
@@ -81,7 +112,8 @@ export default async function SysadminSchoolsPage({
       )}
 
       <p className="text-xs text-xk-text-muted">
-        Mostrando <span className="xk-num font-medium">{schools.length}</span> de <span className="xk-num font-medium">{all.length}</span> escuelas
+        Mostrando <span className="xk-num font-medium">{schools.length}</span> de{' '}
+        <span className="xk-num font-medium">{all.length}</span> escuelas
       </p>
     </div>
   )
