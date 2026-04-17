@@ -8,6 +8,14 @@ import { createAdminClient } from '@/lib/supabase/admin'
 
 export type SchoolStatus = 'active' | 'onboarding' | 'paused' | 'all'
 
+export type SchoolNote = {
+  id:           string
+  note:         string
+  created_at:   string
+  author_name:  string | null
+  author_email: string | null
+}
+
 export type SchoolListItem = {
   id:                    string
   name:                  string
@@ -407,4 +415,65 @@ export async function impersonateDirector(
   }
 
   return { error: null, magicLink: data.properties.action_link }
+}
+
+// ─── getSchoolNotes ───────────────────────────────────────────────────────────
+
+export async function getSchoolNotes(schoolId: string): Promise<SchoolNote[]> {
+  await requireSysadmin()
+  const admin = createAdminClient()
+
+  const { data: notes, error } = await admin
+    .from('school_notes')
+    .select('id, note, created_at, author_id')
+    .eq('school_id', schoolId)
+    .order('created_at', { ascending: false })
+
+  if (error) throw new Error(error.message)
+  if (!notes || notes.length === 0) return []
+
+  const authorIds = [...new Set(notes.map((n) => n.author_id).filter(Boolean))]
+  const authorMap = new Map<string, { name: string | null; email: string | null }>()
+
+  for (const id of authorIds) {
+    const { data: profile } = await admin
+      .from('user_profiles')
+      .select('first_name, last_name')
+      .eq('id', id)
+      .single()
+    const { data: authUser } = await admin.auth.admin.getUserById(id)
+    const name = profile
+      ? [profile.first_name, profile.last_name].filter(Boolean).join(' ').trim() || null
+      : null
+    authorMap.set(id, { name, email: authUser?.user?.email ?? null })
+  }
+
+  return notes.map((n) => {
+    const author = n.author_id ? authorMap.get(n.author_id) : null
+    return {
+      id:           n.id,
+      note:         n.note,
+      created_at:   n.created_at,
+      author_name:  author?.name ?? null,
+      author_email: author?.email ?? null,
+    }
+  })
+}
+
+// ─── addSchoolNote ────────────────────────────────────────────────────────────
+
+export async function addSchoolNote(schoolId: string, note: string): Promise<{ error: string | null }> {
+  const user = await requireSysadmin()
+  const admin = createAdminClient()
+
+  if (!note.trim()) return { error: 'La nota no puede estar vacía' }
+
+  const { error } = await admin
+    .from('school_notes')
+    .insert({ school_id: schoolId, author_id: user.id, note: note.trim() })
+
+  if (error) return { error: error.message }
+
+  revalidatePath(`/sysadmin/schools/${schoolId}`)
+  return { error: null }
 }

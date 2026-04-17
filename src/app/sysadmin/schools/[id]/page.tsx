@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
-import { getSchoolDetail, type SchoolStatus } from '@/app/actions/sysadmin'
+import { getSchoolDetail, getSchoolNotes, type SchoolStatus } from '@/app/actions/sysadmin'
 import SchoolActions from './SchoolActions'
 import SchoolNotes   from './SchoolNotes'
 
@@ -33,8 +33,9 @@ export default async function SchoolDetailPage({
 }) {
   const { id } = await params
   let detail
+  let notes
   try {
-    detail = await getSchoolDetail(id)
+    ;[detail, notes] = await Promise.all([getSchoolDetail(id), getSchoolNotes(id)])
   } catch {
     notFound()
   }
@@ -128,7 +129,7 @@ export default async function SchoolDetailPage({
       <section className="bg-xk-card border border-xk-border rounded-2xl mt-5 p-5">
         <h2 className="font-heading text-base font-semibold text-xk-text mb-3">Notas internas</h2>
         <p className="text-xs text-xk-text-muted mb-3">Solo visibles para sysadmin. Úsalas para contexto de seguimiento.</p>
-        <SchoolNotes schoolId={school.id} initialNotes={school.internal_notes} />
+        <SchoolNotes schoolId={school.id} initialNotes={notes!} />
       </section>
 
       {/* Usuarios */}
