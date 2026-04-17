@@ -64,6 +64,5 @@ function resolveNext(
   fallback: string,
 ) {
   if (type === 'recovery') return '/reset-password'
-  if (type === 'invite')   return '/invite/accept'
   return fallback
 }

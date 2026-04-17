@@ -13,7 +13,8 @@ interface ShellProps {
 }
 
 interface SchoolRow {
-  name: string
+  name:   string
+  active: boolean
 }
 
 interface ProfileRow {
@@ -141,12 +142,13 @@ export default async function DashboardShell({ children, activeHref }: ShellProp
 
   const { data: profile } = await supabase
     .from('user_profiles')
-    .select('first_name, last_name, avatar_url, role, schools(name)')
+    .select('first_name, last_name, avatar_url, role, schools(name, active)')
     .eq('id', user.id)
     .single() as { data: ProfileRow | null }
 
-  const role       = profile?.role ?? 'admin'
-  const schoolName = profile?.schools?.name ?? 'Mi Escuela'
+  const role        = profile?.role ?? 'admin'
+  const schoolName  = profile?.schools?.name ?? 'Mi Escuela'
+  const schoolActive = profile?.schools?.active ?? true
   const userEmail  = user.email ?? ''
   const fullName   = [profile?.first_name, profile?.last_name].filter(Boolean).join(' ') || userEmail
   const initials   = (profile?.first_name?.[0] ?? userEmail[0] ?? 'U').toUpperCase()
@@ -250,6 +252,19 @@ export default async function DashboardShell({ children, activeHref }: ShellProp
               <DashboardLogout />
             </div>
           </header>
+
+          {/* Banner: escuela pendiente de aprobación */}
+          {!schoolActive && role !== 'sysadmin' && (
+            <div className="bg-amber-50 border-b border-amber-200 px-5 py-3 flex items-start gap-3">
+              <span className="text-amber-500 text-lg leading-none mt-0.5">⏳</span>
+              <div>
+                <p className="text-sm font-semibold text-amber-800">Tu escuela está en revisión</p>
+                <p className="text-xs text-amber-700 mt-0.5">
+                  Estamos verificando tu solicitud. Mientras tanto puedes configurar alumnos, grupos y comunicados — todo estará listo cuando aprobemos tu cuenta.
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Contenido de la página */}
           <main className="xk-content">

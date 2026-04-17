@@ -6,6 +6,7 @@ import type { SchoolStatus } from '@/app/actions/sysadmin'
 const FILTERS: Array<{ key: SchoolStatus; label: string }> = [
   { key: 'all',        label: 'Todas' },
   { key: 'active',     label: 'Activas' },
+  { key: 'pending',    label: 'Por aprobar' },
   { key: 'onboarding', label: 'En onboarding' },
   { key: 'paused',     label: 'Pausadas' },
 ]

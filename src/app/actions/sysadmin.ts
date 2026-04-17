@@ -6,7 +6,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
-export type SchoolStatus = 'active' | 'onboarding' | 'paused' | 'all'
+export type SchoolStatus = 'active' | 'onboarding' | 'paused' | 'pending' | 'all'
 
 export type SchoolNote = {
   id:           string
@@ -81,8 +81,9 @@ async function requireSysadmin() {
 }
 
 function classify(s: { active: boolean; onboarding_completed: boolean }): Exclude<SchoolStatus, 'all'> {
-  if (!s.active) return 'paused'
-  if (!s.onboarding_completed) return 'onboarding'
+  if (!s.active && s.onboarding_completed)  return 'pending'
+  if (!s.active)                             return 'paused'
+  if (!s.onboarding_completed)               return 'onboarding'
   return 'active'
 }
 
@@ -348,7 +349,7 @@ export async function createSchoolWithAdmin(data: {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
   const { data: authData, error: authError } = await admin.auth.admin.inviteUserByEmail(
     data.email,
-    { redirectTo: `${appUrl}/onboarding` },
+    { redirectTo: `${appUrl}/auth/confirm?next=/onboarding` },
   )
 
   if (authError || !authData.user) {

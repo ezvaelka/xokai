@@ -57,6 +57,7 @@ export async function completeOnboarding(data: OnboardingData) {
       pickup_end:             data.pickupFin      || null,
       pickup_tolerance_mins:  data.pickupTolerancia,
       onboarding_completed:   true,
+      active:                 false,
       join_code:              joinCode,
     })
     .select()
