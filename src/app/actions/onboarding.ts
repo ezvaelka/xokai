@@ -87,7 +87,7 @@ export async function completeOnboarding(data: OnboardingData) {
   })
 
   revalidatePath('/dashboard')
-  return { error: null, schoolId: school.id }
+  return { error: null, schoolId: school.id, joinCode: school.join_code as string }
 }
 
 // ─── Notificación interna a sysadmin ─────────────────────────────────────────

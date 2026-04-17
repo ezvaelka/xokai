@@ -8,7 +8,7 @@ import { z }                  from 'zod'
 import { toast }              from 'sonner'
 import {
   Loader2, User, Lock, Eye, EyeOff, Upload, LogOut,
-  ShieldAlert, Camera, AlertCircle
+  ShieldAlert, Camera, AlertCircle, Key, Copy, Check
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input }  from '@/components/ui/input'
@@ -62,10 +62,11 @@ interface Props {
   initialLastName:  string
   initialAvatarUrl: string | null
   role:             string
+  joinCode:         string | null
 }
 
 export default function PerfilClient({
-  userId, email, initialFirstName, initialLastName, initialAvatarUrl, role
+  userId, email, initialFirstName, initialLastName, initialAvatarUrl, role, joinCode
 }: Props) {
   const router = useRouter()
 
@@ -75,6 +76,7 @@ export default function PerfilClient({
   const [showCfm,      setShowCfm]      = useState(false)
   const [confirmLogout, setConfirmLogout] = useState(false)
   const [loggingOut,   setLoggingOut]   = useState(false)
+  const [copied,       setCopied]       = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const profileForm = useForm<ProfileForm>({
@@ -250,6 +252,34 @@ export default function PerfilClient({
           </div>
         </form>
       </section>
+
+      {/* ── Sección: código de escuela ── */}
+      {joinCode && (
+        <section className="bg-xk-card rounded-2xl border border-xk-border p-6">
+          <h2 className="font-semibold text-xk-text mb-1 flex items-center gap-2">
+            <Key size={18} className="text-xk-accent" /> Código de acceso de la escuela
+          </h2>
+          <p className="text-sm text-xk-text-secondary mb-4">
+            Comparte este código con maestros y staff para que se unan a tu escuela en Xokai.
+          </p>
+          <div className="flex items-center gap-3 bg-xk-subtle border border-xk-border rounded-xl px-4 py-3">
+            <span className="font-mono text-2xl font-bold text-xk-text tracking-[0.2em] flex-1">
+              {joinCode}
+            </span>
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(joinCode)
+                setCopied(true)
+                setTimeout(() => setCopied(false), 2000)
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-xk-card border border-xk-border text-xs font-medium text-xk-text-secondary hover:text-xk-accent hover:border-xk-accent transition-colors"
+            >
+              {copied ? <Check size={12} /> : <Copy size={12} />}
+              {copied ? 'Copiado' : 'Copiar'}
+            </button>
+          </div>
+        </section>
+      )}
 
       {/* ── Sección: cambiar contraseña ── */}
       <section className="bg-xk-card rounded-2xl border border-xk-border p-6">

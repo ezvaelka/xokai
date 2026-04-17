@@ -29,7 +29,14 @@ export async function signInWithPassword(email: string, password: string) {
 
 export async function signUp(email: string, password: string) {
   const supabase = await createClient()
-  const { error } = await supabase.auth.signUp({ email, password })
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+  const { error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      emailRedirectTo: `${appUrl}/auth/confirm?next=${encodeURIComponent('/onboarding?type=director')}`,
+    },
+  })
   if (error) return { error: traducirError(error.message) }
   revalidatePath('/', 'layout')
   return { error: null }

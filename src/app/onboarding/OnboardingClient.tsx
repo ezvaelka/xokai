@@ -9,7 +9,7 @@ import { toast }             from 'sonner'
 import {
   Loader2, Building2, FileText, Clock, CheckCircle2,
   ChevronRight, ChevronLeft, Upload, X, AlertCircle,
-  ArrowRight, Users, GraduationCap, User, MapPin, Key,
+  ArrowRight, Users, GraduationCap, User, MapPin, Key, Copy, Check,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input }  from '@/components/ui/input'
@@ -100,18 +100,22 @@ const STAFF_STEPS = [
 
 // ─── Componente ───────────────────────────────────────────────────────────────
 
-interface Props { userEmail: string }
+interface Props {
+  userEmail:   string
+  initialType: 'director' | null
+}
 
-export default function OnboardingClient({ userEmail }: Props) {
+export default function OnboardingClient({ userEmail, initialType }: Props) {
   const router = useRouter()
 
-  const [userType,   setUserType]   = useState<'director' | 'staff' | null>(null)
-  const [step,       setStep]       = useState(0)
+  const [userType,   setUserType]   = useState<'director' | 'staff' | null>(initialType)
+  const [step,       setStep]       = useState(initialType ? 1 : 0)
   const [logoUrl,    setLogoUrl]    = useState<string | null>(null)
   const [uploading,  setUploading]  = useState(false)
   const [submitting, setSubmitting] = useState(false)
-  const [success,    setSuccess]    = useState<{ schoolName: string } | null>(null)
+  const [success,    setSuccess]    = useState<{ schoolName: string; joinCode: string } | null>(null)
   const [staffDone,  setStaffDone]  = useState(false)
+  const [copied,     setCopied]     = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const [nameData,    setNameData]    = useState<NameForm | null>(null)
@@ -147,7 +151,7 @@ export default function OnboardingClient({ userEmail }: Props) {
   async function handleFinish() {
     if (!nameData || !schoolData) return
     setSubmitting(true)
-    const { error } = await completeOnboarding({
+    const result = await completeOnboarding({
       nombre: schoolData.nombre, shortName: schoolData.shortName ?? '',
       first_name: nameData.first_name, last_name: nameData.last_name, logoUrl,
       direccion: detailsData?.direccion ?? '', ciudad: detailsData?.ciudad ?? '',
@@ -158,8 +162,8 @@ export default function OnboardingClient({ userEmail }: Props) {
       pickupInicio: pickupData?.pickupInicio ?? '', pickupFin: pickupData?.pickupFin ?? '',
       pickupTolerancia: pickupData?.pickupTolerancia ?? 10,
     })
-    if (error) { toast.error(error); setSubmitting(false); return }
-    setSuccess({ schoolName: schoolData.nombre })
+    if (result.error) { toast.error(result.error); setSubmitting(false); return }
+    setSuccess({ schoolName: schoolData.nombre, joinCode: result.joinCode ?? '' })
   }
 
   async function handleJoin(values: JoinForm) {
@@ -205,21 +209,54 @@ export default function OnboardingClient({ userEmail }: Props) {
 
   if (success) return (
     <div className="min-h-screen bg-xk-bg flex flex-col">
-      <Header subtitle="¡Ya casi terminas!" />
+      <Header subtitle="¡Solicitud enviada!" />
       <div className="flex-1 flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-lg text-center">
           <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-xk-accent-light mb-5 ring-8 ring-xk-accent-light/50">
             <CheckCircle2 size={40} className="text-xk-accent" />
           </div>
-          <h1 className="font-heading text-3xl font-bold text-xk-text mb-2">¡{success.schoolName} está lista!</h1>
-          <p className="text-xk-text-secondary mb-8">Tu escuela fue activada en Xokai.</p>
+          <h1 className="font-heading text-3xl font-bold text-xk-text mb-2">¡{success.schoolName} fue registrada!</h1>
+          <p className="text-xk-text-secondary mb-6">
+            Estamos revisando tu solicitud. Te notificaremos cuando tu escuela esté activa.
+            Mientras tanto ya puedes configurar alumnos y grupos.
+          </p>
+
+          {/* Join code */}
+          {success.joinCode && (
+            <div className="bg-xk-card border border-xk-border rounded-2xl p-5 mb-6 text-left">
+              <p className="text-xs font-semibold text-xk-text-muted uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                <Key size={12} /> Código de acceso para tu equipo
+              </p>
+              <div className="flex items-center gap-3 mb-2">
+                <span className="font-mono text-3xl font-bold text-xk-text tracking-[0.2em]">
+                  {success.joinCode}
+                </span>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(success.joinCode)
+                    setCopied(true)
+                    setTimeout(() => setCopied(false), 2000)
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-xk-subtle border border-xk-border text-xs font-medium text-xk-text-secondary hover:text-xk-accent hover:border-xk-accent transition-colors"
+                >
+                  {copied ? <Check size={12} /> : <Copy size={12} />}
+                  {copied ? 'Copiado' : 'Copiar'}
+                </button>
+              </div>
+              <p className="text-xs text-xk-text-muted">
+                Compártelo con maestros y staff para que se unan a tu escuela en Xokai.
+                También lo encuentras en tu perfil.
+              </p>
+            </div>
+          )}
+
           <div className="bg-xk-card rounded-2xl border border-xk-border shadow-sm overflow-hidden mb-6">
             <div className="px-6 py-4 border-b border-xk-border bg-xk-subtle">
               <p className="text-xs font-semibold text-xk-text-muted uppercase tracking-wider">Próximos pasos</p>
             </div>
             <div className="divide-y divide-xk-border">
-              <NextStepBtn icon={Users} label="Ver código de acceso" sub="Compártelo con tu equipo" onClick={() => router.push('/dashboard/configuracion/usuarios')} />
               <NextStepBtn icon={GraduationCap} label="Registrar alumnos" sub="Importa o agrega alumnos" onClick={() => router.push('/dashboard/alumnos')} />
+              <NextStepBtn icon={Users} label="Invitar a tu equipo" sub="Comparte el código con maestros y staff" onClick={() => router.push('/dashboard/configuracion/usuarios')} />
             </div>
           </div>
           <Button onClick={() => router.push('/dashboard')} className="w-full h-11 gap-2">
