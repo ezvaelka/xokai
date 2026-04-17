@@ -23,7 +23,7 @@ export default function MobileNav({ items, schoolName }: Props) {
 
   function isActive(item: NavItem) {
     if (item.exact) return pathname === item.href
-    return pathname === item.href || pathname.startsWith(`${item.href}/`)
+    return pathname === item.href || pathname.startsWith(item.href + '/')
   }
 
   return (

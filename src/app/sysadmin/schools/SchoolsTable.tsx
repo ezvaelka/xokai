@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { Users, ArrowRight, DollarSign } from 'lucide-react'
 import { StatusBadge } from '@/components/ui/status-badge'
@@ -19,6 +20,9 @@ const PLAN_TONE: Record<SchoolPlan, { tone: Parameters<typeof StatusBadge>[0]['t
   suspended:    { tone: 'danger',  label: 'Suspendida' },
   churned:      { tone: 'neutral', label: 'Churned' },
 }
+
+type SortKey = 'name' | 'plan' | 'status' | 'students' | 'mrr' | 'created_at'
+type SortDir = 'asc' | 'desc'
 
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: '2-digit' })
@@ -40,25 +44,76 @@ function SchoolAvatar({ name }: { name: string }) {
   )
 }
 
+function SortHeader({ label, sortKey, current, onSort }: {
+  label: string
+  sortKey: SortKey
+  current: { key: SortKey; dir: SortDir }
+  onSort: (k: SortKey) => void
+}) {
+  const active = current.key === sortKey
+  return (
+    <button
+      onClick={() => onSort(sortKey)}
+      className="inline-flex items-center gap-1 group text-[11px] font-semibold text-xk-text-muted uppercase tracking-wider hover:text-xk-text transition-colors"
+    >
+      {label}
+      <span className={`text-[10px] ${active ? 'text-xk-accent' : 'text-xk-border group-hover:text-xk-text-muted'}`}>
+        {active ? (current.dir === 'asc' ? '↑' : '↓') : '↕'}
+      </span>
+    </button>
+  )
+}
+
 export default function SchoolsTable({ schools }: { schools: SchoolListItem[] }) {
   const router = useRouter()
+  const [sort, setSort] = useState<{ key: SortKey; dir: SortDir }>({ key: 'created_at', dir: 'desc' })
+
+  const sorted = useMemo(() => {
+    return [...schools].sort((a, b) => {
+      let cmp = 0
+      if (sort.key === 'name')       cmp = a.name.localeCompare(b.name)
+      if (sort.key === 'plan')       cmp = (a.plan ?? '').localeCompare(b.plan ?? '')
+      if (sort.key === 'status')     cmp = a.status.localeCompare(b.status)
+      if (sort.key === 'students')   cmp = (a.student_count ?? 0) - (b.student_count ?? 0)
+      if (sort.key === 'mrr')        cmp = (a.mrr_usd ?? 0) - (b.mrr_usd ?? 0)
+      if (sort.key === 'created_at') cmp = new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      return sort.dir === 'asc' ? cmp : -cmp
+    })
+  }, [schools, sort])
+
+  function toggleSort(key: SortKey) {
+    setSort(prev => prev.key === key ? { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' })
+  }
+
   return (
     <>
       <div className="hidden md:block xk-surface-elevated overflow-hidden">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-xk-border/50 bg-xk-subtle/30">
-              <th className="text-left px-4 py-3 text-[11px] font-semibold text-xk-text-muted uppercase tracking-wider">Escuela</th>
-              <th className="text-left px-4 py-3 text-[11px] font-semibold text-xk-text-muted uppercase tracking-wider">Plan</th>
-              <th className="text-left px-4 py-3 text-[11px] font-semibold text-xk-text-muted uppercase tracking-wider">Estado</th>
-              <th className="text-right px-4 py-3 text-[11px] font-semibold text-xk-text-muted uppercase tracking-wider">Alumnos</th>
-              <th className="text-right px-4 py-3 text-[11px] font-semibold text-xk-text-muted uppercase tracking-wider">MRR</th>
-              <th className="text-left px-4 py-3 text-[11px] font-semibold text-xk-text-muted uppercase tracking-wider">Registrada</th>
+              <th className="text-left px-4 py-3">
+                <SortHeader label="Escuela" sortKey="name" current={sort} onSort={toggleSort} />
+              </th>
+              <th className="text-left px-4 py-3">
+                <SortHeader label="Plan" sortKey="plan" current={sort} onSort={toggleSort} />
+              </th>
+              <th className="text-left px-4 py-3">
+                <SortHeader label="Estado" sortKey="status" current={sort} onSort={toggleSort} />
+              </th>
+              <th className="text-right px-4 py-3">
+                <SortHeader label="Alumnos" sortKey="students" current={sort} onSort={toggleSort} />
+              </th>
+              <th className="text-right px-4 py-3">
+                <SortHeader label="MRR" sortKey="mrr" current={sort} onSort={toggleSort} />
+              </th>
+              <th className="text-left px-4 py-3">
+                <SortHeader label="Registrada" sortKey="created_at" current={sort} onSort={toggleSort} />
+              </th>
               <th className="w-8" />
             </tr>
           </thead>
           <tbody className="divide-y divide-xk-border/30">
-            {schools.map((s) => {
+            {sorted.map((s) => {
               const st   = STATUS_TONE[s.status]
               const plan = PLAN_TONE[s.plan ?? 'trial']
               const days = daysAgo(s.created_at)
@@ -119,7 +174,7 @@ export default function SchoolsTable({ schools }: { schools: SchoolListItem[] })
       </div>
 
       <div className="md:hidden space-y-2">
-        {schools.map((s) => {
+        {sorted.map((s) => {
           const st   = STATUS_TONE[s.status]
           const plan = PLAN_TONE[s.plan ?? 'trial']
           return (

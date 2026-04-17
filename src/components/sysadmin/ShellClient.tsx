@@ -18,6 +18,7 @@ const MOBILE_NAV_ITEMS = [
   {
     label: 'Dashboard',
     href:  '/sysadmin',
+    exact: true,
     icon: <LayoutDashboard className="w-[18px] h-[18px]" />,
   },
   {
