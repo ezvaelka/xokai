@@ -1,5 +1,6 @@
 import { Suspense }                      from 'react'
 import Link                              from 'next/link'
+import { Plus }                          from 'lucide-react'
 import { listSchools, type SchoolStatus } from '@/app/actions/sysadmin'
 import SchoolsFilters                    from './SchoolsFilters'
 import SchoolsTable                      from './SchoolsTable'
@@ -41,11 +42,19 @@ export default async function SysadminSchoolsPage({
 
   return (
     <div className="max-w-7xl mx-auto">
-      <div className="mb-6">
-        <h1 className="font-heading text-2xl font-bold text-xk-text">Escuelas</h1>
-        <p className="text-sm text-xk-text-secondary mt-1">
-          Vista global de todas las escuelas registradas en la plataforma.
-        </p>
+      <div className="flex items-start justify-between gap-4 mb-6">
+        <div>
+          <h1 className="font-heading text-2xl font-bold text-xk-text">Escuelas</h1>
+          <p className="text-sm text-xk-text-secondary mt-1">
+            Vista global de todas las escuelas registradas en la plataforma.
+          </p>
+        </div>
+        <Link
+          href="/sysadmin/schools/new"
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-xk-accent text-white text-sm font-medium hover:bg-xk-accent-dark transition-colors shrink-0"
+        >
+          <Plus size={15} /> Nueva escuela
+        </Link>
       </div>
 
       {/* Contadores de resumen */}
