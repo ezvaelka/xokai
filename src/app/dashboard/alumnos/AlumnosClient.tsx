@@ -1,342 +1,218 @@
 'use client'
 
-import * as React from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import { toast } from 'sonner'
-import { UserPlus, GraduationCap, MoreHorizontal, Pencil, PowerOff, Power } from 'lucide-react'
-import { supabase } from '@/lib/supabase/client'
-import { PageHeader } from '@/components/PageHeader'
-import { DataTable, type Column } from '@/components/DataTable'
-import { FormModal } from '@/components/FormModal'
-import { ConfirmDialog } from '@/components/ConfirmDialog'
-import { StatusBadge } from '@/components/StatusBadge'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-
-// ─── Types ───────────────────────────────────────────────────────────────────
-
-interface Student {
-  id: string
-  student_code: string | null
-  first_name: string
-  last_name: string
-  active: boolean
-  group_id: string | null
-  date_of_birth: string | null
-  allergies: string | null
-  medical_notes: string | null
-}
-
-interface Group {
-  id: string
-  name: string
-}
+import { useState, useTransition, useMemo } from 'react'
+import { useRouter }                         from 'next/navigation'
+import { toast }                             from 'sonner'
+import { Plus, Search, UserX, Pencil, Loader2 } from 'lucide-react'
+import { Button }                            from '@/components/ui/button'
+import StudentForm                           from './StudentForm'
+import { deactivateStudent, type StudentItem } from '@/app/actions/students'
+import type { GroupItem }                    from '@/app/actions/groups'
 
 interface Props {
-  students: Student[]
-  groups: Group[]
-  schoolId: string
+  students: StudentItem[]
+  groups:   GroupItem[]
 }
 
-// ─── Schema ──────────────────────────────────────────────────────────────────
+export default function AlumnosClient({ students, groups }: Props) {
+  const router = useRouter()
+  const [showForm, setShowForm]     = useState(false)
+  const [search, setSearch]         = useState('')
+  const [filterGroup, setGroup]     = useState('')
+  const [filterActive, setActive]   = useState<'all' | 'active' | 'inactive'>('active')
+  const [deactivatingId, setDeacId] = useState<string | null>(null)
+  const [pending, start]            = useTransition()
 
-const alumnoSchema = z.object({
-  first_name: z.string().min(1, 'El nombre es requerido'),
-  last_name: z.string().min(1, 'El apellido es requerido'),
-  student_code: z.string().optional(),
-  group_id: z.string().optional(),
-  date_of_birth: z.string().optional(),
-  allergies: z.string().optional(),
-  medical_notes: z.string().optional(),
-})
-
-type AlumnoForm = z.infer<typeof alumnoSchema>
-
-// ─── Component ───────────────────────────────────────────────────────────────
-
-export default function AlumnosClient({ students: initial, groups, schoolId }: Props) {
-  const [students, setStudents] = React.useState<Student[]>(initial)
-  const [modalOpen, setModalOpen] = React.useState(false)
-  const [editing, setEditing] = React.useState<Student | null>(null)
-
-  const groupMap = React.useMemo(
-    () => Object.fromEntries(groups.map((g) => [g.id, g.name])),
-    [groups]
-  )
-
-  const form = useForm<AlumnoForm>({
-    resolver: zodResolver(alumnoSchema),
-    defaultValues: { first_name: '', last_name: '', student_code: '', group_id: '', date_of_birth: '', allergies: '', medical_notes: '' },
-  })
-
-  function openNew() {
-    setEditing(null)
-    form.reset({ first_name: '', last_name: '', student_code: '', group_id: '', date_of_birth: '', allergies: '', medical_notes: '' })
-    setModalOpen(true)
-  }
-
-  function openEdit(student: Student) {
-    setEditing(student)
-    form.reset({
-      first_name: student.first_name,
-      last_name: student.last_name,
-      student_code: student.student_code ?? '',
-      group_id: student.group_id ?? '',
-      date_of_birth: student.date_of_birth ?? '',
-      allergies: student.allergies ?? '',
-      medical_notes: student.medical_notes ?? '',
+  const filtered = useMemo(() => {
+    return students.filter((s) => {
+      const name = `${s.first_name} ${s.last_name}`.toLowerCase()
+      const matchSearch = !search || name.includes(search.toLowerCase()) ||
+        (s.student_code?.toLowerCase().includes(search.toLowerCase()) ?? false)
+      const matchGroup  = !filterGroup || s.group_id === filterGroup
+      const matchActive = filterActive === 'all' ? true
+        : filterActive === 'active' ? s.active : !s.active
+      return matchSearch && matchGroup && matchActive
     })
-    setModalOpen(true)
+  }, [students, search, filterGroup, filterActive])
+
+  function handleDeactivate(s: StudentItem, e: React.MouseEvent) {
+    e.stopPropagation()
+    if (!confirm(`¿Dar de baja a ${s.first_name} ${s.last_name}? El alumno quedará inactivo.`)) return
+    setDeacId(s.id)
+    start(async () => {
+      const res = await deactivateStudent(s.id)
+      setDeacId(null)
+      if (res.error) toast.error(res.error)
+      else { toast.success('Alumno dado de baja'); router.refresh() }
+    })
   }
-
-  async function onSubmit() {
-    const valid = await form.trigger()
-    if (!valid) return
-
-    const values = form.getValues()
-    const payload = {
-      first_name: values.first_name,
-      last_name: values.last_name,
-      student_code: values.student_code || null,
-      group_id: values.group_id || null,
-      date_of_birth: values.date_of_birth || null,
-      allergies: values.allergies || null,
-      medical_notes: values.medical_notes || null,
-    }
-
-    if (editing) {
-      const { error } = await supabase
-        .from('students')
-        .update(payload)
-        .eq('id', editing.id)
-
-      if (error) { toast.error('No se pudo actualizar el alumno'); return }
-
-      setStudents((prev) =>
-        prev.map((s) => s.id === editing.id ? { ...s, ...payload } : s)
-      )
-      toast.success('Alumno actualizado')
-    } else {
-      const { data, error } = await supabase
-        .from('students')
-        .insert({ ...payload, school_id: schoolId, active: true })
-        .select()
-        .single()
-
-      if (error || !data) { toast.error('No se pudo crear el alumno'); return }
-
-      setStudents((prev) => [...prev, data as Student].sort((a, b) =>
-        `${a.last_name} ${a.first_name}`.localeCompare(`${b.last_name} ${b.first_name}`)
-      ))
-      toast.success('Alumno agregado')
-    }
-
-    setModalOpen(false)
-  }
-
-  async function toggleActive(student: Student) {
-    const { error } = await supabase
-      .from('students')
-      .update({ active: !student.active })
-      .eq('id', student.id)
-
-    if (error) { toast.error('No se pudo actualizar el estado'); return }
-
-    setStudents((prev) =>
-      prev.map((s) => s.id === student.id ? { ...s, active: !s.active } : s)
-    )
-    toast.success(student.active ? 'Alumno desactivado' : 'Alumno reactivado')
-  }
-
-  // ─── Table columns ──────────────────────────────────────────────────────────
-
-  const columns: Column<Student>[] = [
-    {
-      key: 'last_name',
-      header: 'Nombre',
-      cell: (s) => (
-        <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-xk-accent-light text-xk-accent text-xs font-semibold">
-            {s.first_name[0]}{s.last_name[0]}
-          </div>
-          <div>
-            <p className="font-medium text-xk-text">{s.first_name} {s.last_name}</p>
-            {s.student_code && <p className="text-xs text-xk-text-muted">#{s.student_code}</p>}
-          </div>
-        </div>
-      ),
-    },
-    {
-      key: 'group_id',
-      header: 'Grupo',
-      cell: (s) => s.group_id
-        ? <span className="text-xk-text">{groupMap[s.group_id] ?? '—'}</span>
-        : <span className="text-xk-text-muted">Sin grupo</span>,
-    },
-    {
-      key: 'active',
-      header: 'Estado',
-      cell: (s) => <StatusBadge type="active" value={s.active} />,
-      className: 'w-24',
-    },
-    {
-      key: 'id',
-      header: '',
-      className: 'w-10',
-      cell: (s) => (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <MoreHorizontal className="h-4 w-4" />
-              <span className="sr-only">Acciones</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => openEdit(s)}>
-              <Pencil className="mr-2 h-4 w-4" />
-              Editar
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <ConfirmDialog
-              trigger={
-                <DropdownMenuItem
-                  onSelect={(e) => e.preventDefault()}
-                  className={s.active ? 'text-xk-danger focus:text-xk-danger' : ''}
-                >
-                  {s.active
-                    ? <><PowerOff className="mr-2 h-4 w-4" />Desactivar</>
-                    : <><Power className="mr-2 h-4 w-4" />Reactivar</>
-                  }
-                </DropdownMenuItem>
-              }
-              title={s.active ? '¿Desactivar alumno?' : '¿Reactivar alumno?'}
-              description={
-                s.active
-                  ? `${s.first_name} ${s.last_name} no aparecerá en el semáforo ni en listas activas.`
-                  : `${s.first_name} ${s.last_name} volverá a aparecer en todas las listas activas.`
-              }
-              confirmLabel={s.active ? 'Sí, desactivar' : 'Sí, reactivar'}
-              destructive={s.active}
-              onConfirm={() => toggleActive(s)}
-            />
-          </DropdownMenuContent>
-        </DropdownMenu>
-      ),
-    },
-  ]
-
-  // ─── Render ─────────────────────────────────────────────────────────────────
 
   return (
     <>
-      <PageHeader
-        title="Alumnos"
-        description={`${students.filter((s) => s.active).length} alumnos activos`}
-        action={
-          <Button onClick={openNew} className="gap-2">
-            <UserPlus className="h-4 w-4" />
-            Nuevo alumno
-          </Button>
-        }
-      />
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="font-heading text-2xl font-bold text-xk-text">Alumnos</h1>
+          <p className="text-sm text-xk-text-secondary mt-1">
+            {students.filter((s) => s.active).length} alumnos activos
+          </p>
+        </div>
+        <Button onClick={() => setShowForm(true)} className="gap-2">
+          <Plus size={16} /> Registrar alumno
+        </Button>
+      </div>
 
-      <DataTable
-        data={students}
-        columns={columns}
-        searchPlaceholder="Buscar por nombre o matrícula..."
-        searchFn={(s, q) =>
-          `${s.first_name} ${s.last_name} ${s.student_code ?? ''}`.toLowerCase().includes(q)
-        }
-        rowKey={(s) => s.id}
-        emptyTitle="Sin alumnos registrados"
-        emptyDescription="Agrega el primer alumno para comenzar a usar el semáforo y el resto de los módulos."
-        emptyIcon={<GraduationCap className="h-6 w-6" />}
-        emptyAction={
-          <Button onClick={openNew} className="gap-2">
-            <UserPlus className="h-4 w-4" />
-            Agregar primer alumno
-          </Button>
-        }
-      />
-
-      {/* ── Modal crear / editar ─────────────────────────────────────────── */}
-      <FormModal
-        open={modalOpen}
-        onOpenChange={(open) => { setModalOpen(open); if (!open) form.reset() }}
-        title={editing ? 'Editar alumno' : 'Nuevo alumno'}
-        description={editing ? 'Actualiza los datos del alumno.' : 'Ingresa los datos del nuevo alumno.'}
-        submitLabel={editing ? 'Guardar cambios' : 'Agregar alumno'}
-        submitting={form.formState.isSubmitting}
-        onSubmit={onSubmit}
-        size="md"
-      >
-        {/* Nombre + Apellido */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="first_name">Nombre(s) <span className="text-xk-danger">*</span></Label>
-            <Input id="first_name" placeholder="María" {...form.register('first_name')} />
-            {form.formState.errors.first_name && (
-              <p className="text-xs text-xk-danger">{form.formState.errors.first_name.message}</p>
-            )}
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="last_name">Apellido(s) <span className="text-xk-danger">*</span></Label>
-            <Input id="last_name" placeholder="González" {...form.register('last_name')} />
-            {form.formState.errors.last_name && (
-              <p className="text-xs text-xk-danger">{form.formState.errors.last_name.message}</p>
-            )}
-          </div>
+      {/* Filtros */}
+      <div className="flex flex-wrap gap-3 mb-5">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-xk-text-muted" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar por nombre o matrícula…"
+            className="w-full pl-8 pr-3 py-2 rounded-xl border border-xk-border bg-xk-card text-sm text-xk-text placeholder:text-xk-text-muted focus:outline-none focus:ring-2 focus:ring-xk-accent focus:border-transparent"
+          />
         </div>
 
-        {/* Matrícula + Grupo */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="student_code">Matrícula</Label>
-            <Input id="student_code" placeholder="2025-001" {...form.register('student_code')} />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="group_id">Grupo</Label>
-            <select
-              id="group_id"
-              {...form.register('group_id')}
-              className="flex h-9 w-full rounded-md border border-xk-border bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus:outline-none focus:ring-1 focus:ring-xk-accent text-xk-text"
+        {groups.length > 0 && (
+          <select
+            value={filterGroup}
+            onChange={(e) => setGroup(e.target.value)}
+            className="rounded-xl border border-xk-border bg-xk-card px-3 py-2 text-sm text-xk-text focus:outline-none focus:ring-2 focus:ring-xk-accent focus:border-transparent"
+          >
+            <option value="">Todos los grupos</option>
+            {groups.map((g) => (
+              <option key={g.id} value={g.id}>{g.name}</option>
+            ))}
+          </select>
+        )}
+
+        <div className="flex rounded-xl border border-xk-border overflow-hidden bg-xk-card">
+          {(['active', 'all', 'inactive'] as const).map((v) => (
+            <button
+              key={v}
+              onClick={() => setActive(v)}
+              className={[
+                'px-3 py-2 text-xs font-medium transition-colors',
+                filterActive === v
+                  ? 'bg-xk-accent text-white'
+                  : 'text-xk-text-secondary hover:bg-xk-subtle',
+              ].join(' ')}
             >
-              <option value="">Sin grupo</option>
-              {groups.map((g) => (
-                <option key={g.id} value={g.id}>{g.name}</option>
-              ))}
-            </select>
+              {{ active: 'Activos', all: 'Todos', inactive: 'Inactivos' }[v]}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Tabla */}
+      {filtered.length === 0 ? (
+        <div className="bg-xk-card border border-xk-border rounded-2xl p-10 text-center text-sm text-xk-text-muted">
+          {students.length === 0
+            ? 'No hay alumnos registrados aún. Comienza registrando el primero.'
+            : 'No hay alumnos que coincidan con los filtros.'}
+        </div>
+      ) : (
+        <>
+          {/* Desktop table */}
+          <div className="hidden md:block bg-xk-card border border-xk-border rounded-2xl overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-xk-subtle border-b border-xk-border">
+                <tr className="text-xs font-semibold text-xk-text-muted uppercase tracking-wider">
+                  <th className="text-left px-4 py-3">Nombre</th>
+                  <th className="text-left px-4 py-3">Matrícula</th>
+                  <th className="text-left px-4 py-3">Grupo</th>
+                  <th className="text-left px-4 py-3">Estado</th>
+                  <th className="px-4 py-3" />
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((s) => (
+                  <tr
+                    key={s.id}
+                    onClick={() => router.push(`/dashboard/alumnos/${s.id}`)}
+                    className="border-b border-xk-border last:border-0 hover:bg-xk-subtle/50 transition-colors cursor-pointer"
+                  >
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-full bg-xk-accent-light flex items-center justify-center shrink-0">
+                          <span className="text-xs font-bold text-xk-accent">
+                            {s.first_name[0]}{s.last_name[0]}
+                          </span>
+                        </div>
+                        <span className="font-medium text-xk-text">{s.first_name} {s.last_name}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 font-mono text-xs text-xk-text-muted">{s.student_code ?? '—'}</td>
+                    <td className="px-4 py-3 text-xk-text-secondary">{s.group_name ?? '—'}</td>
+                    <td className="px-4 py-3">
+                      <span className={[
+                        'inline-flex px-2 py-0.5 rounded-full text-xs font-medium',
+                        s.active
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-zinc-100 text-zinc-500',
+                      ].join(' ')}>
+                        {s.active ? 'Activo' : 'Inactivo'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      {s.active && (
+                        <button
+                          onClick={(e) => handleDeactivate(s, e)}
+                          disabled={deactivatingId === s.id || pending}
+                          className="p-1.5 rounded-lg hover:bg-red-50 transition-colors"
+                          title="Dar de baja"
+                        >
+                          {deactivatingId === s.id
+                            ? <Loader2 size={13} className="animate-spin text-red-400" />
+                            : <UserX size={13} className="text-red-400" />
+                          }
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        </div>
 
-        {/* Fecha de nacimiento */}
-        <div className="space-y-1.5">
-          <Label htmlFor="date_of_birth">Fecha de nacimiento</Label>
-          <Input id="date_of_birth" type="date" {...form.register('date_of_birth')} />
-        </div>
+          {/* Mobile cards */}
+          <div className="md:hidden space-y-3">
+            {filtered.map((s) => (
+              <button
+                key={s.id}
+                onClick={() => router.push(`/dashboard/alumnos/${s.id}`)}
+                className="block w-full text-left bg-xk-card border border-xk-border rounded-2xl p-4 hover:border-xk-accent transition-colors"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-full bg-xk-accent-light flex items-center justify-center shrink-0">
+                      <span className="text-xs font-bold text-xk-accent">
+                        {s.first_name[0]}{s.last_name[0]}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="font-medium text-xk-text text-sm">{s.first_name} {s.last_name}</p>
+                      {s.group_name && <p className="text-xs text-xk-text-muted">{s.group_name}</p>}
+                    </div>
+                  </div>
+                  <span className="text-xs text-xk-accent font-medium">Ver →</span>
+                </div>
+              </button>
+            ))}
+          </div>
 
-        {/* Alergias */}
-        <div className="space-y-1.5">
-          <Label htmlFor="allergies">Alergias</Label>
-          <Input id="allergies" placeholder="Nueces, lactosa..." {...form.register('allergies')} />
-        </div>
+          <p className="text-xs text-xk-text-muted mt-3">{filtered.length} alumno{filtered.length !== 1 ? 's' : ''}</p>
+        </>
+      )}
 
-        {/* Notas médicas */}
-        <div className="space-y-1.5">
-          <Label htmlFor="medical_notes">Notas médicas</Label>
-          <Input id="medical_notes" placeholder="Información relevante para el personal..." {...form.register('medical_notes')} />
-        </div>
-      </FormModal>
+      {showForm && (
+        <StudentForm
+          groups={groups}
+          onClose={() => setShowForm(false)}
+          onSuccess={() => router.refresh()}
+        />
+      )}
     </>
   )
 }

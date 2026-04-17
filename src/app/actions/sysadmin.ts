@@ -299,3 +299,112 @@ export async function updateSchoolNotes(schoolId: string, notes: string) {
   revalidatePath(`/sysadmin/schools/${schoolId}`)
   return { error: null }
 }
+
+// ─── createSchoolWithAdmin ────────────────────────────────────────────────────
+
+function generateJoinCode(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+  let code = ''
+  for (let i = 0; i < 6; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+  return code
+}
+
+export async function createSchoolWithAdmin(data: {
+  schoolName: string
+  city:       string
+  email:      string
+  password:   string
+}): Promise<{ error: string | null; schoolId: string | null }> {
+  await requireSysadmin()
+  const admin = createAdminClient()
+
+  // Paso 1: Crear escuela
+  const { data: school, error: schoolError } = await admin
+    .from('schools')
+    .insert({
+      name:                 data.schoolName,
+      city:                 data.city,
+      active:               true,
+      onboarding_completed: true,
+      join_code:            generateJoinCode(),
+    })
+    .select('id')
+    .single()
+
+  if (schoolError || !school) {
+    return { error: schoolError?.message ?? 'Error al crear la escuela', schoolId: null }
+  }
+
+  // Paso 2: Crear usuario en auth
+  const { data: authData, error: authError } = await admin.auth.admin.createUser({
+    email:          data.email,
+    password:       data.password,
+    email_confirm:  true,
+  })
+
+  if (authError || !authData.user) {
+    // Limpiar escuela creada
+    await Promise.resolve(admin.from('schools').delete().eq('id', school.id)).catch(() => null)
+    return { error: authError?.message ?? 'Error al crear usuario', schoolId: null }
+  }
+
+  // Paso 3: Crear user_profile
+  const { error: profileError } = await admin
+    .from('user_profiles')
+    .insert({
+      id:        authData.user.id,
+      role:      'admin',
+      school_id: school.id,
+    })
+
+  if (profileError) {
+    // Limpiar usuario y escuela creados
+    await admin.auth.admin.deleteUser(authData.user.id).catch(() => null)
+    await Promise.resolve(admin.from('schools').delete().eq('id', school.id)).catch(() => null)
+    return { error: profileError.message, schoolId: null }
+  }
+
+  revalidatePath('/sysadmin/schools')
+  return { error: null, schoolId: school.id }
+}
+
+// ─── impersonateDirector ──────────────────────────────────────────────────────
+
+export async function impersonateDirector(
+  schoolId: string
+): Promise<{ error: string | null; magicLink: string | null }> {
+  await requireSysadmin()
+  const admin = createAdminClient()
+
+  const { data: director, error: directorError } = await admin
+    .from('user_profiles')
+    .select('id')
+    .eq('school_id', schoolId)
+    .eq('role', 'admin')
+    .limit(1)
+    .single()
+
+  if (directorError || !director) {
+    return { error: 'La escuela no tiene directora registrada', magicLink: null }
+  }
+
+  const { data: authUser, error: authUserError } = await admin.auth.admin.getUserById(director.id)
+  if (authUserError || !authUser?.user?.email) {
+    return { error: 'Directora sin email válido', magicLink: null }
+  }
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+  const { data, error: linkError } = await admin.auth.admin.generateLink({
+    type:  'magiclink',
+    email: authUser.user.email,
+    options: { redirectTo: `${appUrl}/dashboard` },
+  })
+
+  if (linkError || !data) {
+    return { error: linkError?.message ?? 'Error al generar enlace', magicLink: null }
+  }
+
+  return { error: null, magicLink: data.properties.action_link }
+}
