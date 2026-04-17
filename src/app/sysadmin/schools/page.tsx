@@ -1,5 +1,6 @@
 import { Suspense }                      from 'react'
 import Link                              from 'next/link'
+import { Plus }                          from 'lucide-react'
 import { listSchools, type SchoolStatus } from '@/app/actions/sysadmin'
 import SchoolsFilters                    from './SchoolsFilters'
 import SchoolsTable                      from './SchoolsTable'
@@ -41,73 +42,116 @@ export default async function SysadminSchoolsPage({
   const cities = [...new Set(all.map((s) => s.city).filter((c): c is string => Boolean(c)))].sort()
 
   return (
-    <div className="max-w-7xl mx-auto">
-      <div className="mb-6">
-        <h1 className="font-heading text-2xl font-bold text-xk-text">Escuelas</h1>
-        <p className="text-sm text-xk-text-secondary mt-1">
-          Vista global de todas las escuelas registradas en la plataforma.
-        </p>
+    <div className="max-w-7xl mx-auto space-y-6">
+
+      {/* Header */}
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="font-heading text-2xl font-bold text-xk-text">Escuelas</h1>
+          <p className="text-sm text-xk-text-secondary mt-1">
+            {all.length} {all.length === 1 ? 'escuela registrada' : 'escuelas registradas'} en la plataforma.
+          </p>
+        </div>
+        <Link
+          href="/sysadmin/schools/new"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-xk-accent text-white text-sm font-medium hover:bg-xk-accent-dark transition-colors shrink-0"
+        >
+          <Plus className="w-4 h-4" />
+          Nueva escuela
+        </Link>
       </div>
 
-      {/* Contadores de resumen */}
+      {/* Status pills */}
       {all.length > 0 && (
-        <div className="flex flex-wrap gap-3 mb-5">
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href="/sysadmin/schools"
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border ${
+              status === 'all'
+                ? 'bg-xk-accent text-white border-xk-accent'
+                : 'bg-xk-card text-xk-text-secondary border-xk-border hover:bg-xk-subtle'
+            }`}
+          >
+            Todas · {all.length}
+          </Link>
           <Link
             href="/sysadmin/schools?status=active"
-            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-green-50 border border-green-200 hover:bg-green-100 transition-colors"
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border ${
+              status === 'active'
+                ? 'bg-green-600 text-white border-green-600'
+                : 'bg-xk-card text-xk-text-secondary border-xk-border hover:bg-xk-subtle'
+            }`}
           >
-            <span className="w-2 h-2 rounded-full bg-green-500" />
-            <span className="text-sm font-semibold text-green-700">{counts.active}</span>
-            <span className="text-xs text-green-600">activas</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+            Activas · {counts.active}
           </Link>
           {counts.pending > 0 && (
             <Link
               href="/sysadmin/schools?status=pending"
-              className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-orange-50 border border-orange-300 hover:bg-orange-100 transition-colors animate-pulse"
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border ${
+                status === 'pending'
+                  ? 'bg-orange-600 text-white border-orange-600'
+                  : 'bg-orange-50 text-orange-700 border-orange-300 hover:bg-orange-100'
+              }`}
             >
-              <span className="w-2 h-2 rounded-full bg-orange-500" />
-              <span className="text-sm font-semibold text-orange-700">{counts.pending}</span>
-              <span className="text-xs text-orange-600">por aprobar</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
+              Por aprobar · {counts.pending}
             </Link>
           )}
           <Link
             href="/sysadmin/schools?status=onboarding"
-            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-amber-50 border border-amber-200 hover:bg-amber-100 transition-colors"
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border ${
+              status === 'onboarding'
+                ? 'bg-amber-600 text-white border-amber-600'
+                : 'bg-xk-card text-xk-text-secondary border-xk-border hover:bg-xk-subtle'
+            }`}
           >
-            <span className="w-2 h-2 rounded-full bg-amber-500" />
-            <span className="text-sm font-semibold text-amber-700">{counts.onboarding}</span>
-            <span className="text-xs text-amber-600">en onboarding</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+            Onboarding · {counts.onboarding}
           </Link>
           <Link
             href="/sysadmin/schools?status=paused"
-            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-zinc-50 border border-zinc-200 hover:bg-zinc-100 transition-colors"
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border ${
+              status === 'paused'
+                ? 'bg-zinc-600 text-white border-zinc-600'
+                : 'bg-xk-card text-xk-text-secondary border-xk-border hover:bg-xk-subtle'
+            }`}
           >
-            <span className="w-2 h-2 rounded-full bg-zinc-400" />
-            <span className="text-sm font-semibold text-zinc-600">{counts.paused}</span>
-            <span className="text-xs text-zinc-500">pausadas</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-zinc-400" />
+            Pausadas · {counts.paused}
           </Link>
         </div>
       )}
 
-      {/* Filtros — client component */}
-      <Suspense>
-        <SchoolsFilters
-          currentStatus={status}
-          currentCity={currentCity}
-          cities={cities}
-        />
-      </Suspense>
+      {/* Filtros de ciudad */}
+      {cities.length > 0 && (
+        <Suspense>
+          <SchoolsFilters currentStatus={status} currentCity={currentCity} cities={cities} />
+        </Suspense>
+      )}
 
+      {/* Tabla o vacío */}
       {schools.length === 0 ? (
-        <div className="bg-xk-card border border-xk-border rounded-2xl p-10 text-center text-sm text-xk-text-muted">
-          No hay escuelas {status === 'all' && !currentCity ? 'registradas' : 'con los filtros seleccionados'}.
+        <div className="bg-xk-card border border-xk-border rounded-2xl p-12 text-center">
+          <p className="text-sm text-xk-text-muted">
+            No hay escuelas {status === 'all' && !currentCity ? 'registradas' : 'con los filtros seleccionados'}.
+          </p>
+          {status === 'all' && !currentCity && (
+            <Link
+              href="/sysadmin/schools/new"
+              className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-xk-accent text-white text-sm font-medium hover:bg-xk-accent-dark transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Agregar primera escuela
+            </Link>
+          )}
         </div>
       ) : (
         <SchoolsTable schools={schools} />
       )}
 
-      <p className="text-xs text-xk-text-muted mt-3">
-        {schools.length} {schools.length === 1 ? 'escuela' : 'escuelas'}
+      <p className="text-xs text-xk-text-muted">
+        Mostrando {schools.length} {schools.length === 1 ? 'escuela' : 'escuelas'}
       </p>
     </div>
   )

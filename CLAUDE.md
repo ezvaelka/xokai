@@ -104,3 +104,8 @@ Todos los agentes deben alinearse a su visión y escalar decisiones importantes 
 
 - Para mergear sin PR: `git rebase origin/main && git push <PAT_URL> branch:main`
 - Vercel hace deploy automático al push a `main`.
+
+### Ejecución de tareas (workflow del agente)
+
+- **Hacer todo en chunks pequeños para evitar timeouts**. Archivos grandes (>200 líneas) → crear en múltiples ediciones. Commands largos → dividir. Push de muchos archivos → batches pequeños. No preguntar, hacerlo así por default.
+- **`mcp__github__push_files` con muchos archivos grandes puede fallar**. Preferir commits incrementales (3-5 archivos por push).

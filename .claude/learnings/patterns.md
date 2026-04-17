@@ -72,7 +72,11 @@ Siempre incluir: (1) confirmación de qué pasó, (2) estado actual con contexto
 el estado real (ej. "¡Activar!" cuando la escuela queda pendiente de aprobación).
 
 ## Claude Code
-- Tareas atómicas pequeñas evitan timeouts
+- **Tareas atómicas pequeñas SIEMPRE** — evitar timeouts es prioridad. No preguntar, hacerlo por default.
+  - Archivos >200 líneas → múltiples ediciones/write parciales
+  - Commands largos → dividir en varios Bash calls
+  - Push con muchos archivos → batches de 3-5 archivos por commit
 - Auto-accept mode para ir más rápido
 - Leer CLAUDE.md y /.claude/learnings/ al inicio de cada sesión
 - Correr `npx tsc --noEmit` antes de push para detectar errores de build
+- `mcp__github__push_files` puede dar 403 con muchos archivos grandes — usar commits incrementales locales + `git push`
