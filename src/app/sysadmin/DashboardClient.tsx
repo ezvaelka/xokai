@@ -241,9 +241,9 @@ export default function DashboardClient({ metrics: m, schools }: Props) {
               <Link
                 key={s.id}
                 href={`/sysadmin/schools/${s.id}`}
-                className="flex items-center gap-4 px-5 py-3.5 hover:bg-xk-subtle/50 transition-colors group"
+                className="flex items-center gap-4 px-5 py-3.5 hover:bg-xk-subtle/50 transition-all duration-150 group"
               >
-                <div className="w-8 h-8 rounded-lg bg-xk-accent-light flex items-center justify-center shrink-0">
+                <div className="w-8 h-8 rounded-lg bg-xk-accent-light flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-200">
                   <span className="text-[11px] font-bold text-xk-accent">{s.name.slice(0, 2).toUpperCase()}</span>
                 </div>
                 <div className="flex-1 min-w-0">
