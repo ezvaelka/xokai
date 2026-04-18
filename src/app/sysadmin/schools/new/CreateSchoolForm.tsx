@@ -29,9 +29,11 @@ export default function CreateSchoolForm() {
   const router = useRouter()
   const [pending, start] = useTransition()
   const [form, setForm] = useState({
-    schoolName: '',
-    city:       '',
-    email:      '',
+    schoolName:        '',
+    city:              '',
+    directorFirstName: '',
+    directorLastName:  '',
+    email:             '',
   })
 
   function set(k: keyof typeof form, v: string) {
@@ -44,7 +46,13 @@ export default function CreateSchoolForm() {
     if (!form.email.trim())      { toast.error('El email de la directora es requerido'); return }
 
     start(async () => {
-      const res = await createSchoolWithAdmin(form)
+      const res = await createSchoolWithAdmin({
+        schoolName:        form.schoolName,
+        city:              form.city,
+        directorFirstName: form.directorFirstName,
+        directorLastName:  form.directorLastName,
+        email:             form.email,
+      })
       if (res.error) { toast.error(res.error); return }
       toast.success(`Escuela "${form.schoolName}" creada — invite enviado a ${form.email}`)
       router.push(`/sysadmin/schools/${res.schoolId}`)

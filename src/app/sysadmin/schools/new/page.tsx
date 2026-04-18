@@ -8,7 +8,7 @@ import { createSchoolWithAdmin } from '@/app/actions/sysadmin'
 
 export default function NewSchoolPage() {
   const router  = useRouter()
-  const [form,  setForm]   = useState({ schoolName: '', city: '', email: '' })
+  const [form,  setForm]   = useState({ schoolName: '', city: '', directorFirstName: '', directorLastName: '', email: '' })
   const [error, setError]  = useState<string | null>(null)
   const [ok,    setOk]     = useState(false)
   const [busy,  setBusy]   = useState(false)
