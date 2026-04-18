@@ -346,12 +346,16 @@ function generateJoinCode(): string {
 }
 
 export async function createSchoolWithAdmin(data: {
-  schoolName: string
-  city:       string
-  email:      string
+  schoolName:        string
+  city:              string
+  directorFirstName: string
+  directorLastName:  string
+  email:             string
 }): Promise<{ error: string | null; schoolId: string | null }> {
   await requireSysadmin()
   const admin = createAdminClient()
+
+  const trialEndsAt = new Date(Date.now() + 30 * 86_400_000).toISOString()
 
   // Paso 1: Crear escuela
   const { data: school, error: schoolError } = await admin
@@ -362,6 +366,8 @@ export async function createSchoolWithAdmin(data: {
       active:               true,
       onboarding_completed: true,
       join_code:            generateJoinCode(),
+      plan:                 'trial',
+      trial_ends_at:        trialEndsAt,
     })
     .select('id')
     .single()
@@ -370,11 +376,14 @@ export async function createSchoolWithAdmin(data: {
     return { error: schoolError?.message ?? 'Error al crear la escuela', schoolId: null }
   }
 
-  // Paso 2: Invitar directora — crea usuario + envía email automáticamente via Resend
+  // Paso 2: Invitar directora — crea usuario + envía email automáticamente
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
   const { data: authData, error: authError } = await admin.auth.admin.inviteUserByEmail(
     data.email,
-    { redirectTo: `${appUrl}/auth/confirm?next=/onboarding` },
+    {
+      redirectTo: `${appUrl}/auth/confirm?next=/onboarding`,
+      data: { rol: 'admin', escuela_id: school.id },
+    },
   )
 
   if (authError || !authData.user) {
@@ -386,9 +395,11 @@ export async function createSchoolWithAdmin(data: {
   const { error: profileError } = await admin
     .from('user_profiles')
     .insert({
-      id:        authData.user.id,
-      role:      'admin',
-      school_id: school.id,
+      id:         authData.user.id,
+      role:       'admin',
+      school_id:  school.id,
+      first_name: data.directorFirstName,
+      last_name:  data.directorLastName,
     })
 
   if (profileError) {

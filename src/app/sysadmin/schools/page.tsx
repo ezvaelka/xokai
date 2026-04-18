@@ -1,9 +1,10 @@
 import { Suspense }                       from 'react'
 import Link                               from 'next/link'
-import { Plus, Search }                   from 'lucide-react'
+import { Search }                         from 'lucide-react'
 import { listSchools, type SchoolStatus } from '@/app/actions/sysadmin'
 import SchoolsFilters                     from './SchoolsFilters'
 import SchoolsTable                       from './SchoolsTable'
+import NewSchoolModal                     from './NewSchoolModal'
 
 function parseStatus(value: string | string[] | undefined): SchoolStatus {
   const v = Array.isArray(value) ? value[0] : value
@@ -64,12 +65,7 @@ export default async function SysadminSchoolsPage({
             {totalMrr > 0 && <> · <span className="text-emerald-700 font-medium xk-num">${totalMrr} MRR</span></>}
           </p>
         </div>
-        <Link
-          href="/sysadmin/schools/new"
-          className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-lg bg-xk-accent text-white text-sm font-medium hover:bg-xk-accent-dark transition-colors shadow-sm sm:shrink-0"
-        >
-          <Plus className="w-4 h-4" />Nueva escuela
-        </Link>
+        <NewSchoolModal />
       </div>
 
       <Suspense>
@@ -99,12 +95,7 @@ export default async function SysadminSchoolsPage({
               Eliminar filtros
             </Link>
           ) : (
-            <Link
-              href="/sysadmin/schools/new"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-xk-accent text-white text-sm font-medium hover:bg-xk-accent-dark transition-colors"
-            >
-              <Plus className="w-4 h-4" /> Nueva escuela
-            </Link>
+            <NewSchoolModal />
           )}
         </div>
       ) : (
