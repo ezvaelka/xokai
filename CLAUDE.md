@@ -484,6 +484,26 @@ src/app/sysadmin/
 ### C7 — Notas sysadmin
 - Tabla `school_notes` (append-only), visible solo para sysadmin vía RLS inline
 
+### C8 — MobileNav drawer via React portal
+- El drawer del menú mobile se renderiza con `createPortal(drawer, document.body)`
+- Razón: `overflow: hidden` en el contenedor padre (`ShellClient`) clipea `position: fixed` en iOS Safari cuando hay `backdrop-filter` en la jerarquía
+- Incluye: body scroll lock (`document.body.style.overflow = 'hidden'`), `padding-bottom: env(safe-area-inset-bottom)`, slide-in con `transition-transform`, auto-cierre al cambiar ruta
+- Archivo: `src/components/MobileNav.tsx`
+
+### C9 — Modal Nueva Escuela inline (sysadmin)
+- Reemplaza la navegación a `/sysadmin/schools/new` por un `shadcn Dialog` inline en la página de listado
+- 4 campos: nombre escuela, estado/país (dropdown), nombre directora (nombre + apellido), email
+- Al crear: `plan: 'trial'`, `trial_ends_at = hoy + 30 días`, `inviteUserByEmail` con `data: { rol: 'admin', escuela_id }`
+- `user_profiles` incluye `first_name` y `last_name` de la directora desde el inicio
+- Toast: `"Escuela creada · Invitación enviada a [email]"`
+- Archivo: `src/app/sysadmin/schools/NewSchoolModal.tsx`
+
+### C10 — Fuente única para dropdown Estado/País
+- `MX_STATES` y `LATAM_COUNTRIES` (con flags) son la lista canónica
+- Usada en `NewSchoolModal.tsx` y `SchoolsFilters.tsx`
+- Los valores almacenados en DB (`city`) son exactamente los `value` del dropdown — el filtro hace match contra `s.state === val || s.city === val`
+- La lista anterior en `SchoolsFilters` tenía ciudades por país (no países) y nombres distintos — causaba que los filtros no matchearan con los valores guardados por el modal
+
 ---
 
 ## Learnings técnicos
@@ -521,6 +541,29 @@ src/app/sysadmin/
 - **Pantallas finales de flujo**: (1) confirmación de qué pasó, (2) estado actual, (3) 2-3 próximos pasos accionables, (4) CTA primario
 - **Onboarding solo para directoras**. Staff se une vía `join_code`. Pasar `?type=director` en `emailRedirectTo`
 - **Pre-llenar correo de escuela** con el email del signup
+
+### iOS Safari — position: fixed dentro de overflow: hidden
+
+En iOS Safari (y a veces Chrome mobile), un elemento con `position: fixed` se clipea al contenedor padre si ese padre tiene `overflow: hidden` Y algún ancestro tiene `backdrop-filter`, `filter`, o `transform`. Esto no ocurre en desktop.
+
+**Síntoma**: el drawer del menú mobile aparecía recortado o incompleto al abrirse.
+
+**Fix**: renderizar el drawer con `createPortal(jsx, document.body)` — escapa completamente del árbol del DOM y se posiciona relativo al viewport correctamente en todos los navegadores.
+
+### Branch divergida al mergear PR
+
+Si GitHub dice `mergeable: false / dirty`, verificar con:
+```bash
+curl -H "Authorization: token $PAT" https://api.github.com/repos/.../compare/main...branch | jq '{ahead_by, behind_by, status}'
+```
+Si `behind_by > 0`: hacer rebase + force-push, luego reintentar merge (esperar 5-6s).
+
+### Tracking refs desincronizados tras rebase + force-push
+
+Después de `git push --force`, el tracking ref local queda desactualizado y el stop-hook reporta "commits sin push". Fix:
+```bash
+git fetch <PAT_URL> branch:refs/remotes/origin/branch --force
+```
 
 ---
 
@@ -564,6 +607,12 @@ curl -X PUT -H "Authorization: token $PAT" https://api.github.com/repos/ezvaelka
   - Push con muchos archivos → batches de 3-5 archivos
 - Leer `/CLAUDE.md` al inicio de cada sesión
 - Correr `npx tsc --noEmit` antes de push
+- **Al terminar cada tarea**: PR + merge a `main` automáticamente sin esperar que Ez lo pida
+
+### Animaciones hover — patrón establecido (sysadmin)
+- `MetricCard`: `group-hover:-translate-y-0.5 group-hover:shadow-md` en card, `group-hover:scale-110` en ícono, número cambia a `text-xk-accent` al hover
+- `SchoolsTable`: `group-hover:scale-110` en avatar (desktop), `hover:-translate-y-0.5 hover:shadow-md` en cards (mobile)
+- `globals.css`: `.xk-surface`, `.xk-surface-elevated`, `.xk-surface-flat` tienen `transition` por defecto
 
 ---
 
@@ -586,6 +635,8 @@ curl -X PUT -H "Authorization: token $PAT" https://api.github.com/repos/ezvaelka
 - NO eliminar imports de lucide sin verificar que NO se usen en constantes o JSX fuera del componente
 - NO mostrar pantalla de éxito en la misma URL donde ocurrió el server action
 - NO usar funciones de `schema.sql` en migraciones (ej. `is_sysadmin()`)
+- NO confiar en `position: fixed` dentro de `overflow: hidden` en iOS Safari — usar `createPortal`
+- NO duplicar listas de datos (estados MX, países LATAM) en múltiples archivos — extraer a constante compartida o mantener una fuente canónica
 
 ### Seguridad
 - NO pegar tokens en claude.ai chat — solo en Claude Code
@@ -603,6 +654,34 @@ curl -X PUT -H "Authorization: token $PAT" https://api.github.com/repos/ezvaelka
 
 ---
 
+## Estado actual del proyecto (actualizado 2026-04-18)
+
+### Completo ✓
+- **Auth**: magic link, email/password, invite flow, middleware por rol
+- **Onboarding**: wizard de directora → escuela con `pending` status
+- **Sysadmin**: dashboard de métricas, listado de escuelas con filtros, detalle de escuela, notas internas, plan/trial management, activity log, impersonate director
+- **Nueva escuela**: modal inline con 4 campos, trial 30d automático, invite con metadata
+- **Alumnos**: CRUD completo (crear, editar, activar/desactivar)
+- **Comunicados**: CRUD con imagen, link externo y segmentación por grupo/grado/escuela
+- **Design System**: tokens `xk-*`, fuentes, animaciones hover en cards
+- **Mobile Nav**: drawer via portal, slide-in, body scroll lock, safe area iOS
+
+### Pendiente 🔲
+- **Pickup / Semáforo**: GPS en tiempo real, tablet de puerta, semáforo 🔴🟡🟢 — **prioridad máxima**
+- **Pagos y colegiaturas**: Stripe subscriptions, CFDI 4.0, cobro automático
+- **Calendario escolar**: eventos, menú del día, extracurriculares
+- **Firma electrónica**: contratos desde el celular
+- **App mobile**: iOS (Swift) y Android (Kotlin) — módulo Pickup con GPS
+- **Dashboard admin completo**: métricas propias de la escuela, grupos, maestros
+- **Módulo de grupos**: CRUD de grupos y asignación de maestros
+- **Módulo de maestros**: CRUD de maestros
+
+### Sin problemas conocidos ✓
+- No hay errores TypeScript conocidos
+- No hay bugs reportados en producción actualmente
+
+---
+
 ## Referencias en el codebase
 
 | Qué | Dónde |
@@ -617,6 +696,9 @@ curl -X PUT -H "Authorization: token $PAT" https://api.github.com/repos/ezvaelka
 | MetricCard | `src/components/ui/metric-card.tsx` |
 | StatusBadge | `src/components/ui/status-badge.tsx` |
 | Server actions | `src/app/actions/` |
+| Mobile drawer (portal) | `src/components/MobileNav.tsx` |
+| Modal nueva escuela | `src/app/sysadmin/schools/NewSchoolModal.tsx` |
+| Dropdown Estado/País | `src/app/sysadmin/schools/NewSchoolModal.tsx` (fuente canónica) |
 
 ---
 
