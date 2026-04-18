@@ -596,8 +596,9 @@ curl -X PUT -H "Authorization: token $PAT" https://api.github.com/repos/ezvaelka
 ## Flujo de trabajo Git
 
 - **Siempre trabajar en feature branches** — nunca commitear directo a `main`
-- **Siempre crear un PR** antes de mergear a `main`
-- **Mergear via PR** para mantener historial limpio en GitHub
+- **Al terminar cada tarea**: crear PR y mergear a `main` automáticamente — no esperar que Ez lo pida
+- Si hay conflictos al mergear: hacer rebase sobre `main`, resolver, force-push, luego mergear
+- **Mergear via PR** (squash) para mantener historial limpio en GitHub
 - La rama de trabajo activa está definida en el sistema de instrucciones del agente
 
 ---
