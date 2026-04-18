@@ -13,21 +13,22 @@ const TABS: Array<{ key: SchoolStatus; label: string }> = [
   { key: 'churned',    label: 'Churned' },
 ]
 
-const MEXICO_STATES = [
+const MX_STATES = [
   'Aguascalientes', 'Baja California', 'Baja California Sur', 'Campeche',
   'Chiapas', 'Chihuahua', 'Ciudad de México', 'Coahuila', 'Colima',
-  'Durango', 'Guanajuato', 'Guerrero', 'Hidalgo', 'Jalisco', 'México',
-  'Michoacán', 'Morelos', 'Nayarit', 'Nuevo León', 'Oaxaca', 'Puebla',
-  'Querétaro', 'Quintana Roo', 'San Luis Potosí', 'Sinaloa', 'Sonora',
-  'Tabasco', 'Tamaulipas', 'Tlaxcala', 'Veracruz', 'Yucatán', 'Zacatecas',
+  'Durango', 'Estado de México', 'Guanajuato', 'Guerrero', 'Hidalgo',
+  'Jalisco', 'Michoacán', 'Morelos', 'Nayarit', 'Nuevo León', 'Oaxaca',
+  'Puebla', 'Querétaro', 'Quintana Roo', 'San Luis Potosí', 'Sinaloa',
+  'Sonora', 'Tabasco', 'Tamaulipas', 'Tlaxcala', 'Veracruz', 'Yucatán',
+  'Zacatecas',
 ]
 
-const LATAM: Array<{ country: string; cities: string[] }> = [
-  { country: 'Argentina', cities: ['Buenos Aires', 'Córdoba', 'Rosario', 'Mendoza', 'La Plata', 'San Miguel de Tucumán', 'Mar del Plata'] },
-  { country: 'Colombia',  cities: ['Bogotá', 'Medellín', 'Cali', 'Barranquilla', 'Cartagena', 'Cúcuta', 'Bucaramanga'] },
-  { country: 'Perú',      cities: ['Lima', 'Arequipa', 'Trujillo', 'Chiclayo', 'Cusco'] },
-  { country: 'Brasil',    cities: ['São Paulo', 'Rio de Janeiro', 'Brasília', 'Salvador', 'Fortaleza', 'Belo Horizonte', 'Manaus'] },
-  { country: 'Chile',     cities: ['Santiago', 'Valparaíso', 'Concepción', 'La Serena', 'Antofagasta', 'Temuco'] },
+const LATAM_COUNTRIES = [
+  { flag: '🇦🇷', name: 'Argentina' },
+  { flag: '🇧🇷', name: 'Brasil' },
+  { flag: '🇨🇱', name: 'Chile' },
+  { flag: '🇨🇴', name: 'Colombia' },
+  { flag: '🇵🇪', name: 'Perú' },
 ]
 
 interface Props {
@@ -85,18 +86,16 @@ export default function SchoolsFilters({ currentStatus, currentState, counts }: 
         className="w-full sm:w-auto sm:min-w-[220px] h-8 px-3 rounded-lg border border-xk-border bg-xk-card text-sm text-xk-text focus:outline-none focus:ring-2 focus:ring-xk-accent/30 focus:border-xk-accent transition-colors"
       >
         <option value="">Todos los estados</option>
-        <optgroup label="── MÉXICO ──">
-          {MEXICO_STATES.map((s) => (
+        <optgroup label="🇲🇽 México">
+          {MX_STATES.map((s) => (
             <option key={s} value={s}>{s}</option>
           ))}
         </optgroup>
-        {LATAM.map(({ country, cities }) => (
-          <optgroup key={country} label={`── ${country.toUpperCase()} ──`}>
-            {cities.map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </optgroup>
-        ))}
+        <optgroup label="América Latina">
+          {LATAM_COUNTRIES.map((c) => (
+            <option key={c.name} value={c.name}>{c.flag} {c.name}</option>
+          ))}
+        </optgroup>
       </select>
     </div>
   )
