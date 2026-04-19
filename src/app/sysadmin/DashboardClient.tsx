@@ -132,7 +132,6 @@ function fmtUsd(n: number) {
 }
 
 export default function DashboardClient({ metrics: m, schools, firstName }: Props) {
-  const [selectedId, setSelectedId]     = useState<string | 'all'>('all')
   const [search, setSearch]             = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [regionFilter, setRegionFilter] = useState('')
@@ -144,8 +143,6 @@ export default function DashboardClient({ metrics: m, schools, firstName }: Prop
   const handleDonutFilter = (name: string) => {
     setDonutFilter(prev => prev === name ? null : name)
   }
-
-  const selected = selectedId === 'all' ? null : schools.find(s => s.id === selectedId) ?? null
 
   // Schools filtered by header filters (región + plan) — afectan TODAS las métricas
   const filteredSchools = useMemo(() =>
@@ -169,18 +166,10 @@ export default function DashboardClient({ metrics: m, schools, firstName }: Prop
   const chartData = useMemo(() => m.schoolsByMonth.slice(-chartPeriod), [m.schoolsByMonth, chartPeriod])
 
   // Métricas calculadas desde filteredSchools
-  const mrrUsd        = selectedId === 'all'
-    ? filteredSchools.reduce((sum, s) => sum + (s.mrr_usd ?? 0), 0)
-    : (selected?.mrr_usd ?? 0)
-  const totalStudents = selectedId === 'all'
-    ? filteredSchools.reduce((sum, s) => sum + (s.student_count ?? 0), 0)
-    : (selected?.student_count ?? 0)
-  const activeSchools = selectedId === 'all'
-    ? filteredSchools.filter(s => s.status === 'active').length
-    : (selected?.status === 'active' ? 1 : 0)
-  const utilizacion   = selectedId === 'all'
-    ? (filteredSchools.length > 0 ? Math.round((activeSchools / filteredSchools.length) * 100) : 0)
-    : (selected?.status === 'active' ? 100 : 0)
+  const mrrUsd        = filteredSchools.reduce((sum, s) => sum + (s.mrr_usd ?? 0), 0)
+  const totalStudents = filteredSchools.reduce((sum, s) => sum + (s.student_count ?? 0), 0)
+  const activeSchools = filteredSchools.filter(s => s.status === 'active').length
+  const utilizacion   = filteredSchools.length > 0 ? Math.round((activeSchools / filteredSchools.length) * 100) : 0
 
   function handleSearch(v: string) {
     if (searchDebounce.current) clearTimeout(searchDebounce.current)
@@ -210,17 +199,6 @@ export default function DashboardClient({ metrics: m, schools, firstName }: Prop
           {greeting()}, {firstName} <span className="inline-block">👋</span>
         </h1>
         <div className="flex flex-wrap items-center gap-2">
-          <div className="relative">
-            <select
-              value={selectedId}
-              onChange={e => setSelectedId(e.target.value)}
-              className="appearance-none h-9 pl-3 pr-8 rounded-lg border border-xk-border bg-xk-surface text-xs text-xk-text cursor-pointer hover:border-xk-border-strong focus:outline-none focus:ring-2 focus:ring-xk-accent/20 focus:border-xk-accent transition-colors min-w-[160px]"
-            >
-              <option value="all">Todas las escuelas</option>
-              {schools.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-            </select>
-            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-xk-text-muted pointer-events-none" />
-          </div>
           <div className="relative">
             <select
               value={regionFilter}
@@ -275,26 +253,8 @@ export default function DashboardClient({ metrics: m, schools, firstName }: Prop
         </div>
       </div>
 
-      {/* School detail banner */}
-      {selected && (
-        <Link
-          href={`/sysadmin/schools/${selected.id}`}
-          className="flex items-center gap-3 px-4 py-3 rounded-xl bg-xk-accent-light border border-xk-accent/20 hover:bg-xk-accent/10 transition-colors group"
-        >
-          <Building2 className="w-4 h-4 text-xk-accent shrink-0" />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-xk-accent">{selected.name}</p>
-            <p className="text-xs text-xk-text-muted">{selected.city ?? '—'} · Mostrando métricas de esta escuela</p>
-          </div>
-          <StatusBadge tone={STATUS_TONE[selected.status]?.tone ?? 'neutral'}>
-            {STATUS_TONE[selected.status]?.label ?? selected.status}
-          </StatusBadge>
-          <ArrowRight className="w-4 h-4 text-xk-accent opacity-0 group-hover:opacity-100 transition-opacity" />
-        </Link>
-      )}
-
       {/* Alerta pendientes — badge morado con CTA */}
-      {selectedId === 'all' && m.pendingSchools > 0 && (
+      {m.pendingSchools > 0 && (
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 px-4 py-3 rounded-xl bg-xk-accent-light border border-xk-accent/20">
           <div className="flex items-center gap-3 flex-1">
             <span className="inline-flex items-center justify-center min-w-[32px] h-8 px-2 rounded-full bg-xk-accent text-white text-sm font-bold xk-num shrink-0">
@@ -318,22 +278,21 @@ export default function DashboardClient({ metrics: m, schools, firstName }: Prop
         <MetricCard
           label="MRR"
           value={fmtUsd(mrrUsd)}
-          sublabel={selectedId === 'all' ? 'Ingresos mensuales' : 'Esta escuela'}
+          sublabel="Ingresos mensuales"
           icon={DollarSign}
           iconTone="success"
-          delta={mrrUsd > 0 ? { value: `${activeSchools} activa${activeSchools !== 1 ? 's' : ''}`, trend: 'up' } : undefined}
         />
         <MetricCard
           label="Escuelas activas"
-          value={selectedId === 'all' ? activeSchools : (STATUS_TONE[selected?.status ?? 'paused']?.label ?? '—')}
-          sublabel={selectedId === 'all' ? `${utilizacion}% del total` : (selected?.city ?? '—')}
+          value={activeSchools}
+          sublabel={`${utilizacion}% del total`}
           icon={Building2}
           iconTone="accent"
         />
         <MetricCard
           label="Alumnos"
           value={totalStudents.toLocaleString()}
-          sublabel={selectedId === 'all' ? `en ${filteredSchools.length} ${filteredSchools.length === 1 ? 'escuela' : 'escuelas'}` : 'En esta escuela'}
+          sublabel={`en ${filteredSchools.length} ${filteredSchools.length === 1 ? 'escuela' : 'escuelas'}`}
           icon={Users}
           iconTone="neutral"
         />
@@ -346,9 +305,8 @@ export default function DashboardClient({ metrics: m, schools, firstName }: Prop
         />
       </div>
 
-      {/* Charts — global view only */}
-      {selectedId === 'all' && (
-        <div className="grid lg:grid-cols-3 gap-4 items-stretch">
+      {/* Charts */}
+      <div className="grid lg:grid-cols-3 gap-4 items-stretch">
           {/* Nuevas escuelas — 2/3 width */}
           <div className="lg:col-span-2 xk-surface-elevated p-5 flex flex-col">
             <div className="flex items-center justify-between mb-4">
@@ -402,56 +360,9 @@ export default function DashboardClient({ metrics: m, schools, firstName }: Prop
             />
           </div>
         </div>
-      )}
 
-      {/* School detail panel */}
-      {selected && (
-        <div className="xk-surface-elevated p-5">
-          <h2 className="text-sm font-semibold text-xk-text mb-4">Detalles — {selected.name}</h2>
-          <div className="grid sm:grid-cols-2 gap-4 text-sm">
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-xk-text-muted text-xs">Plan</span>
-                <span className="text-xk-text font-medium">{selected.plan}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-xk-text-muted text-xs">Ciudad</span>
-                <span className="text-xk-text">{selected.city ?? '—'}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-xk-text-muted text-xs">Email</span>
-                <span className="text-xk-text text-xs">{selected.director_email ?? '—'}</span>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-xk-text-muted text-xs">Alumnos</span>
-                <span className="xk-num font-semibold text-xk-text">{selected.student_count}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-xk-text-muted text-xs">MRR</span>
-                <span className="xk-num font-semibold text-emerald-700">
-                  {selected.mrr_usd > 0 ? fmtUsd(selected.mrr_usd) : '—'}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-xk-text-muted text-xs">Registrada</span>
-                <span className="text-xk-text">{fmtDate(selected.created_at)}</span>
-              </div>
-            </div>
-          </div>
-          <Link
-            href={`/sysadmin/schools/${selected.id}`}
-            className="mt-4 inline-flex items-center gap-1.5 text-xs text-xk-accent hover:text-xk-accent-dark font-medium"
-          >
-            Ver detalle completo <ArrowRight className="w-3 h-3" />
-          </Link>
-        </div>
-      )}
-
-      {/* Últimas escuelas — global view only */}
-      {selectedId === 'all' && (
-        <div className="xk-surface-elevated overflow-hidden w-full">
+      {/* Últimas escuelas */}
+      <div className="xk-surface-elevated overflow-hidden w-full">
           <div className="flex items-center justify-between px-5 py-4 border-b border-xk-border/50 flex-wrap gap-3">
             <div className="flex items-center gap-3">
               <h2 className="text-sm font-semibold text-xk-text">Últimas escuelas</h2>
@@ -545,7 +456,6 @@ export default function DashboardClient({ metrics: m, schools, firstName }: Prop
             </div>
           )}
         </div>
-      )}
 
       {/* Empty state */}
       {m.totalSchools === 0 && (
