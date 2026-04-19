@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useRef } from 'react'
 import Link from 'next/link'
-import { Building2, Users, DollarSign, TrendingUp, AlertTriangle, ArrowRight, ChevronDown, Search } from 'lucide-react'
+import { Building2, Users, DollarSign, TrendingUp, ArrowRight, ChevronDown, Search, LogIn, Eye } from 'lucide-react'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 import { MetricCard } from '@/components/ui/metric-card'
 import { StatusBadge } from '@/components/ui/status-badge'
@@ -227,17 +227,24 @@ export default function DashboardClient({ metrics: m, schools, firstName }: Prop
         </Link>
       )}
 
-      {/* Alerta pendientes */}
+      {/* Alerta pendientes — badge morado con CTA */}
       {selectedId === 'all' && m.pendingSchools > 0 && (
-        <Link href="/sysadmin/schools?status=pending" className="block">
-          <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 hover:bg-amber-100 transition-colors">
-            <AlertTriangle className="w-4 h-4 shrink-0" />
-            <p className="text-sm font-medium">
-              {m.pendingSchools} {m.pendingSchools === 1 ? 'escuela pendiente' : 'escuelas pendientes'} de aprobación
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 px-4 py-3 rounded-xl bg-xk-accent-light border border-xk-accent/20">
+          <div className="flex items-center gap-3 flex-1">
+            <span className="inline-flex items-center justify-center min-w-[32px] h-8 px-2 rounded-full bg-xk-accent text-white text-sm font-bold xk-num shrink-0">
+              {m.pendingSchools}
+            </span>
+            <p className="text-sm font-medium text-xk-text">
+              {m.pendingSchools === 1 ? 'escuela espera' : 'escuelas esperan'} aprobación
             </p>
-            <ArrowRight className="w-4 h-4 ml-auto" />
           </div>
-        </Link>
+          <Link
+            href="/sysadmin/schools?status=pending"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-xk-accent text-white text-xs font-medium hover:bg-xk-accent-dark transition-colors shrink-0"
+          >
+            Revisar ahora <ArrowRight className="w-3 h-3" />
+          </Link>
+        </div>
       )}
 
       {/* Metric cards */}
