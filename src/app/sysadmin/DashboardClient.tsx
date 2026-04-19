@@ -1,11 +1,13 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import Link from 'next/link'
-import { Building2, Users, DollarSign, TrendingUp, AlertTriangle, ArrowRight, ChevronDown } from 'lucide-react'
+import { Building2, Users, DollarSign, TrendingUp, AlertTriangle, ArrowRight, ChevronDown, Search } from 'lucide-react'
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 import { MetricCard } from '@/components/ui/metric-card'
 import { StatusBadge } from '@/components/ui/status-badge'
 import MetricsChart from './MetricsChart'
+import { MX_STATES, LATAM_COUNTRIES } from '@/lib/school-locations'
 import type { SysadminMetrics, SchoolListItem } from '@/app/actions/sysadmin'
 
 type Props = {
@@ -20,6 +22,14 @@ const STATUS_TONE = {
   pending:    { tone: 'danger'  as const, label: 'Por aprobar' },
 }
 
+const DONUT_DATA = (m: SysadminMetrics) => [
+  { name: 'Activas',     value: m.activeSchools,     color: '#059669' },
+  { name: 'Trial',       value: m.totalSchools - m.activeSchools - m.onboardingSchools - m.pendingSchools - m.pausedSchools, color: '#6D4AE8' },
+  { name: 'Onboarding',  value: m.onboardingSchools, color: '#D97706' },
+  { name: 'Por aprobar', value: m.pendingSchools,     color: '#DC2626' },
+  { name: 'Pausadas',    value: m.pausedSchools,      color: '#A8A49E' },
+].filter(d => d.value > 0)
+
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })
 }
@@ -28,23 +38,40 @@ function fmtUsd(n: number) {
   return n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
 }
 
+const SELECT_CLASS = 'h-8 px-2.5 rounded-lg border border-xk-border bg-xk-surface text-xs text-xk-text focus:outline-none focus:ring-2 focus:ring-xk-accent/20 focus:border-xk-accent transition-colors'
+
 export default function DashboardClient({ metrics: m, schools }: Props) {
-  const [selectedId, setSelectedId] = useState<string | 'all'>('all')
+  const [selectedId, setSelectedId]     = useState<string | 'all'>('all')
+  const [search, setSearch]             = useState('')
+  const [regionFilter, setRegionFilter] = useState('')
+  const [planFilter, setPlanFilter]     = useState('')
+  const [chartPeriod, setChartPeriod]   = useState<3 | 6 | 12>(12)
+  const searchDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const selected = selectedId === 'all' ? null : schools.find(s => s.id === selectedId) ?? null
 
-  const _filtered = useMemo(() => {
-    if (selectedId === 'all') return null
-    return schools.filter(s => s.id === selectedId)
-  }, [selectedId, schools])
+  const visibleSchools = useMemo(() =>
+    schools.filter(s =>
+      (!search       || s.name.toLowerCase().includes(search.toLowerCase())) &&
+      (!regionFilter || s.state === regionFilter || s.city === regionFilter) &&
+      (!planFilter   || s.plan === planFilter)
+    ), [schools, search, regionFilter, planFilter])
 
-  // Metrics for current view
+  const chartData = useMemo(() => m.schoolsByMonth.slice(-chartPeriod), [m.schoolsByMonth, chartPeriod])
+
   const mrrUsd        = selectedId === 'all' ? m.mrrUsd : (selected?.mrr_usd ?? 0)
   const totalStudents = selectedId === 'all' ? m.totalStudents : (selected?.student_count ?? 0)
   const activeSchools = selectedId === 'all' ? m.activeSchools : (selected?.status === 'active' ? 1 : 0)
   const utilizacion   = selectedId === 'all'
     ? (m.totalSchools > 0 ? Math.round((m.activeSchools / m.totalSchools) * 100) : 0)
     : (selected?.status === 'active' ? 100 : 0)
+
+  function handleSearch(v: string) {
+    if (searchDebounce.current) clearTimeout(searchDebounce.current)
+    searchDebounce.current = setTimeout(() => setSearch(v), 300)
+  }
+
+  const donutData = useMemo(() => DONUT_DATA(m), [m])
 
   return (
     <div className="space-y-8">
@@ -55,7 +82,6 @@ export default function DashboardClient({ metrics: m, schools }: Props) {
           <h1 className="text-2xl font-semibold tracking-tight text-xk-text">Dashboard</h1>
         </div>
         <div className="flex items-center gap-3">
-          {/* School selector */}
           <div className="relative">
             <select
               value={selectedId}
@@ -78,7 +104,7 @@ export default function DashboardClient({ metrics: m, schools }: Props) {
         </div>
       </div>
 
-      {/* School detail banner when one school selected */}
+      {/* School detail banner */}
       {selected && (
         <Link
           href={`/sysadmin/schools/${selected.id}`}
@@ -96,7 +122,7 @@ export default function DashboardClient({ metrics: m, schools }: Props) {
         </Link>
       )}
 
-      {/* Alerta pendientes — only in global view */}
+      {/* Alerta pendientes */}
       {selectedId === 'all' && m.pendingSchools > 0 && (
         <Link href="/sysadmin/schools?status=pending" className="block">
           <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 hover:bg-amber-100 transition-colors">
@@ -120,7 +146,7 @@ export default function DashboardClient({ metrics: m, schools }: Props) {
           delta={mrrUsd > 0 ? { value: `${activeSchools} activa${activeSchools !== 1 ? 's' : ''}`, trend: 'up' } : undefined}
         />
         <MetricCard
-          label={selectedId === 'all' ? 'Escuelas activas' : 'Estado'}
+          label={selectedId === 'all' ? 'Escuelas activas' : 'Estatus'}
           value={selectedId === 'all' ? activeSchools : (STATUS_TONE[selected?.status ?? 'paused']?.label ?? '—')}
           sublabel={selectedId === 'all' ? `${utilizacion}% del total` : (selected?.city ?? '—')}
           icon={Building2}
@@ -142,49 +168,110 @@ export default function DashboardClient({ metrics: m, schools }: Props) {
         />
       </div>
 
-      {/* Charts — only global view */}
+      {/* Charts — global view only */}
       {selectedId === 'all' && (
-        <div className="grid lg:grid-cols-3 gap-4">
-          <div className="lg:col-span-2 xk-surface-elevated p-5">
+        <div className="grid lg:grid-cols-3 gap-4 items-stretch">
+          {/* Nuevas escuelas — 2/3 width */}
+          <div className="lg:col-span-2 xk-surface-elevated p-5 flex flex-col">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="text-sm font-semibold text-xk-text">Nuevas escuelas</h2>
-                <p className="text-xs text-xk-text-muted mt-0.5">Últimos 12 meses</p>
+                <p className="text-xs text-xk-text-muted mt-0.5">
+                  {chartPeriod === 12 ? 'Últimos 12 meses' : chartPeriod === 6 ? 'Últimos 6 meses' : 'Últimos 3 meses'}
+                </p>
               </div>
-              <span className="xk-num text-2xl font-semibold text-xk-text">{m.totalSchools}</span>
+              <div className="flex items-center gap-2">
+                <span className="xk-num text-2xl font-semibold text-xk-text">{m.totalSchools}</span>
+                {/* Period selector */}
+                <div className="flex rounded-lg border border-xk-border overflow-hidden text-[11px] font-medium">
+                  {([3, 6, 12] as const).map(p => (
+                    <button
+                      key={p}
+                      onClick={() => setChartPeriod(p)}
+                      className={[
+                        'px-2.5 py-1 transition-colors',
+                        chartPeriod === p
+                          ? 'bg-xk-accent text-white'
+                          : 'text-xk-text-muted hover:bg-xk-subtle',
+                      ].join(' ')}
+                    >
+                      {p}m
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
-            <MetricsChart data={m.schoolsByMonth} />
+            <div className="flex-1">
+              <MetricsChart data={chartData} />
+            </div>
           </div>
-          <div className="xk-surface-elevated p-5 flex flex-col gap-4">
-            <h2 className="text-sm font-semibold text-xk-text">Distribución</h2>
-            {([
-              { label: 'Activas',      count: m.activeSchools,     tone: 'success' as const, color: 'bg-emerald-500' },
-              { label: 'Onboarding',   count: m.onboardingSchools, tone: 'warning' as const, color: 'bg-amber-500' },
-              { label: 'Por aprobar',  count: m.pendingSchools,    tone: 'danger'  as const, color: 'bg-orange-500' },
-              { label: 'Pausadas',     count: m.pausedSchools,     tone: 'neutral' as const, color: 'bg-zinc-400' },
-            ] as const).map(row => {
-              const pct = m.totalSchools > 0 ? (row.count / m.totalSchools) * 100 : 0
-              return (
-                <div key={row.label} className="space-y-1.5">
-                  <div className="flex items-center justify-between text-xs">
-                    <StatusBadge tone={row.tone} dot={false}>{row.label}</StatusBadge>
-                    <span className="xk-num font-semibold text-xk-text">{row.count}</span>
-                  </div>
-                  <div className="h-1.5 rounded-full bg-xk-subtle overflow-hidden">
-                    <div className={`h-full rounded-full ${row.color} transition-all duration-500`} style={{ width: `${pct}%` }} />
+
+          {/* Distribución — donut chart */}
+          <div className="xk-surface-elevated p-5 flex flex-col">
+            <h2 className="text-sm font-semibold text-xk-text mb-4">Distribución</h2>
+            {donutData.length > 0 ? (
+              <>
+                <div className="flex-1 min-h-[160px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={donutData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius="55%"
+                        outerRadius="80%"
+                        paddingAngle={2}
+                        dataKey="value"
+                      >
+                        {donutData.map((entry, i) => (
+                          <Cell key={i} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{
+                          background: '#fff',
+                          border: '1px solid #ECEAE3',
+                          borderRadius: 8,
+                          fontSize: 12,
+                          boxShadow: '0 4px 6px -1px rgba(0,0,0,0.08)',
+                        }}
+                        formatter={(value: number, name: string) => [value, name]}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="space-y-2 pt-3 border-t border-xk-border/50 mt-2">
+                  {donutData.map(d => {
+                    const pct = m.totalSchools > 0 ? Math.round((d.value / m.totalSchools) * 100) : 0
+                    return (
+                      <div key={d.name} className="flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: d.color }} />
+                          <span className="text-xk-text-secondary">{d.name}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-xk-text-muted">
+                          <span className="xk-num font-semibold text-xk-text">{d.value}</span>
+                          <span className="xk-num w-8 text-right">{pct}%</span>
+                        </div>
+                      </div>
+                    )
+                  })}
+                  <div className="pt-1.5 border-t border-xk-border/30 flex items-center justify-between text-xs">
+                    <span className="text-xk-text-muted">Total</span>
+                    <span className="xk-num font-bold text-xk-text">{m.totalSchools}</span>
                   </div>
                 </div>
-              )
-            })}
-            <div className="pt-2 border-t border-xk-border/50 mt-auto flex items-center justify-between text-xs">
-              <span className="text-xk-text-muted">Total</span>
-              <span className="xk-num font-bold text-xk-text">{m.totalSchools}</span>
-            </div>
+              </>
+            ) : (
+              <div className="flex-1 flex items-center justify-center text-sm text-xk-text-muted">
+                Sin datos aún.
+              </div>
+            )}
           </div>
         </div>
       )}
 
-      {/* When school selected: show school-specific detail */}
+      {/* School detail panel */}
       {selected && (
         <div className="xk-surface-elevated p-5">
           <h2 className="text-sm font-semibold text-xk-text mb-4">Detalles — {selected.name}</h2>
@@ -229,38 +316,75 @@ export default function DashboardClient({ metrics: m, schools }: Props) {
         </div>
       )}
 
-      {/* Últimas escuelas — global view only */}
-      {selectedId === 'all' && m.recentSchools.length > 0 && (
+      {/* Filtros + Últimas escuelas — global view only */}
+      {selectedId === 'all' && (
         <div className="xk-surface-elevated overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-xk-border/50">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-xk-border/50 flex-wrap gap-3">
             <h2 className="text-sm font-semibold text-xk-text">Últimas escuelas</h2>
-            <Link href="/sysadmin/schools" className="text-xs text-xk-accent hover:text-xk-accent-dark font-medium">Ver todas →</Link>
-          </div>
-          <div className="divide-y divide-xk-border/40">
-            {m.recentSchools.map((s) => (
-              <Link
-                key={s.id}
-                href={`/sysadmin/schools/${s.id}`}
-                className="flex items-center gap-4 px-5 py-3.5 hover:bg-xk-subtle/50 transition-all duration-150 group"
-              >
-                <div className="w-8 h-8 rounded-lg bg-xk-accent-light flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-200">
-                  <span className="text-[11px] font-bold text-xk-accent">{s.name.slice(0, 2).toUpperCase()}</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-xk-text truncate">{s.name}</p>
-                  <p className="text-xs text-xk-text-muted">{s.city ?? '—'}</p>
-                </div>
-                <div className="flex items-center gap-3 shrink-0">
-                  <div className="flex items-center gap-1 text-xk-text-muted">
-                    <Users className="w-3.5 h-3.5" />
-                    <span className="xk-num text-xs">{s.student_count}</span>
-                  </div>
-                  <span className="text-xs text-xk-text-muted">{fmtDate(s.created_at)}</span>
-                  <ArrowRight className="w-3.5 h-3.5 text-xk-text-muted opacity-0 group-hover:opacity-100 transition-opacity" />
-                </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Search */}
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-xk-text-muted pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder="Buscar por nombre…"
+                  onChange={e => handleSearch(e.target.value)}
+                  className="h-8 pl-8 pr-3 rounded-lg border border-xk-border bg-xk-surface text-xs text-xk-text placeholder:text-xk-text-muted focus:outline-none focus:ring-2 focus:ring-xk-accent/20 focus:border-xk-accent transition-colors w-44"
+                />
+              </div>
+              {/* Región */}
+              <select value={regionFilter} onChange={e => setRegionFilter(e.target.value)} className={SELECT_CLASS}>
+                <option value="">Todas las regiones</option>
+                <optgroup label="🇲🇽 México">
+                  {MX_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+                </optgroup>
+                <optgroup label="América Latina">
+                  {LATAM_COUNTRIES.map(c => <option key={c.name} value={c.name}>{c.flag} {c.name}</option>)}
+                </optgroup>
+              </select>
+              {/* Plan */}
+              <select value={planFilter} onChange={e => setPlanFilter(e.target.value)} className={SELECT_CLASS}>
+                <option value="">Todos los planes</option>
+                <option value="trial">Trial</option>
+                <option value="base">Base</option>
+                <option value="base_pickup">Base+Pickup</option>
+              </select>
+              <Link href="/sysadmin/schools" className="text-xs text-xk-accent hover:text-xk-accent-dark font-medium whitespace-nowrap">
+                Ver todas →
               </Link>
-            ))}
+            </div>
           </div>
+          {visibleSchools.length > 0 ? (
+            <div className="divide-y divide-xk-border/40">
+              {visibleSchools.slice(0, 8).map((s) => (
+                <Link
+                  key={s.id}
+                  href={`/sysadmin/schools/${s.id}`}
+                  className="flex items-center gap-4 px-5 py-3.5 hover:bg-xk-subtle/50 transition-all duration-150 group"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-xk-accent-light flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-200">
+                    <span className="text-[11px] font-bold text-xk-accent">{s.name.slice(0, 2).toUpperCase()}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-xk-text truncate">{s.name}</p>
+                    <p className="text-xs text-xk-text-muted">{s.state ?? s.city ?? '—'}</p>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <div className="flex items-center gap-1 text-xk-text-muted">
+                      <Users className="w-3.5 h-3.5" />
+                      <span className="xk-num text-xs">{s.student_count}</span>
+                    </div>
+                    <span className="text-xs text-xk-text-muted">{fmtDate(s.created_at)}</span>
+                    <ArrowRight className="w-3.5 h-3.5 text-xk-text-muted opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="px-5 py-10 text-center text-sm text-xk-text-muted">
+              Sin escuelas con esos filtros.
+            </div>
+          )}
         </div>
       )}
 

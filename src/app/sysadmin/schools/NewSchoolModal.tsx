@@ -13,29 +13,12 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { createSchoolWithAdmin } from '@/app/actions/sysadmin'
-
-const MX_STATES = [
-  'Aguascalientes', 'Baja California', 'Baja California Sur', 'Campeche',
-  'Chiapas', 'Chihuahua', 'Ciudad de México', 'Coahuila', 'Colima',
-  'Durango', 'Estado de México', 'Guanajuato', 'Guerrero', 'Hidalgo',
-  'Jalisco', 'Michoacán', 'Morelos', 'Nayarit', 'Nuevo León', 'Oaxaca',
-  'Puebla', 'Querétaro', 'Quintana Roo', 'San Luis Potosí', 'Sinaloa',
-  'Sonora', 'Tabasco', 'Tamaulipas', 'Tlaxcala', 'Veracruz', 'Yucatán',
-  'Zacatecas',
-]
-
-const LATAM_COUNTRIES = [
-  { flag: '🇦🇷', name: 'Argentina' },
-  { flag: '🇧🇷', name: 'Brasil' },
-  { flag: '🇨🇱', name: 'Chile' },
-  { flag: '🇨🇴', name: 'Colombia' },
-  { flag: '🇵🇪', name: 'Perú' },
-]
+import { MX_STATES, LATAM_COUNTRIES } from '@/lib/school-locations'
 
 const FIELD_CLASS =
   'w-full rounded-xl border border-xk-border bg-xk-bg px-3 py-2.5 text-sm text-xk-text placeholder:text-xk-text-muted focus:outline-none focus:ring-2 focus:ring-xk-accent focus:border-transparent'
 
-const EMPTY = { schoolName: '', city: '', directorFirstName: '', directorLastName: '', email: '' }
+const EMPTY = { schoolName: '', city: '', directorName: '', email: '' }
 
 export default function NewSchoolModal() {
   const router = useRouter()
@@ -56,16 +39,17 @@ export default function NewSchoolModal() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!form.schoolName.trim())        { toast.error('El nombre de la escuela es requerido'); return }
-    if (!form.directorFirstName.trim()) { toast.error('El nombre de la directora es requerido'); return }
-    if (!form.email.trim())             { toast.error('El email de la directora es requerido'); return }
+    if (!form.schoolName.trim())   { toast.error('El nombre de la escuela es requerido'); return }
+    if (!form.directorName.trim()) { toast.error('El nombre de la directora es requerido'); return }
+    if (!form.email.trim())        { toast.error('El email de la directora es requerido'); return }
 
     start(async () => {
+      const [first, ...rest] = form.directorName.trim().split(' ')
       const res = await createSchoolWithAdmin({
         schoolName:        form.schoolName.trim(),
         city:              form.city,
-        directorFirstName: form.directorFirstName.trim(),
-        directorLastName:  form.directorLastName.trim(),
+        directorFirstName: first,
+        directorLastName:  rest.join(' '),
         email:             form.email.trim(),
       })
 
@@ -137,20 +121,12 @@ export default function NewSchoolModal() {
             <label className="block text-xs font-medium text-xk-text-muted uppercase tracking-wider mb-1.5">
               Nombre de la directora *
             </label>
-            <div className="flex gap-2">
-              <input
-                value={form.directorFirstName}
-                onChange={(e) => set('directorFirstName', e.target.value)}
-                placeholder="Nombre"
-                className={FIELD_CLASS}
-              />
-              <input
-                value={form.directorLastName}
-                onChange={(e) => set('directorLastName', e.target.value)}
-                placeholder="Apellido"
-                className={FIELD_CLASS}
-              />
-            </div>
+            <input
+              value={form.directorName}
+              onChange={(e) => set('directorName', e.target.value)}
+              placeholder="Nombre completo"
+              className={FIELD_CLASS}
+            />
           </div>
 
           {/* Email de la directora */}

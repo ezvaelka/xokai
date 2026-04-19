@@ -21,7 +21,7 @@ const PLAN_TONE: Record<SchoolPlan, { tone: Parameters<typeof StatusBadge>[0]['t
   churned:      { tone: 'neutral', label: 'Churned' },
 }
 
-type SortKey = 'name' | 'plan' | 'status' | 'students' | 'mrr' | 'created_at'
+type SortKey = 'name' | 'region' | 'plan' | 'status' | 'students' | 'mrr' | 'created_at'
 type SortDir = 'asc' | 'desc'
 
 function fmtDate(iso: string) {
@@ -72,6 +72,7 @@ export default function SchoolsTable({ schools }: { schools: SchoolListItem[] })
     return [...schools].sort((a, b) => {
       let cmp = 0
       if (sort.key === 'name')       cmp = a.name.localeCompare(b.name)
+      if (sort.key === 'region')     cmp = (a.state ?? a.city ?? '').localeCompare(b.state ?? b.city ?? '')
       if (sort.key === 'plan')       cmp = (a.plan ?? '').localeCompare(b.plan ?? '')
       if (sort.key === 'status')     cmp = a.status.localeCompare(b.status)
       if (sort.key === 'students')   cmp = (a.student_count ?? 0) - (b.student_count ?? 0)
@@ -95,10 +96,13 @@ export default function SchoolsTable({ schools }: { schools: SchoolListItem[] })
                 <SortHeader label="Escuela" sortKey="name" current={sort} onSort={toggleSort} />
               </th>
               <th className="text-left px-4 py-3">
+                <SortHeader label="Región" sortKey="region" current={sort} onSort={toggleSort} />
+              </th>
+              <th className="text-left px-4 py-3">
                 <SortHeader label="Plan" sortKey="plan" current={sort} onSort={toggleSort} />
               </th>
               <th className="text-left px-4 py-3">
-                <SortHeader label="Estado" sortKey="status" current={sort} onSort={toggleSort} />
+                <SortHeader label="Estatus" sortKey="status" current={sort} onSort={toggleSort} />
               </th>
               <th className="text-right px-4 py-3">
                 <SortHeader label="Alumnos" sortKey="students" current={sort} onSort={toggleSort} />
@@ -130,6 +134,9 @@ export default function SchoolsTable({ schools }: { schools: SchoolListItem[] })
                         </p>
                       </div>
                     </div>
+                  </td>
+                  <td className="px-4 py-3.5">
+                    <span className="text-xs text-xk-text-secondary">{s.state ?? s.city ?? <span className="text-xk-text-muted">—</span>}</span>
                   </td>
                   <td className="px-4 py-3.5">
                     <StatusBadge tone={plan.tone}>{plan.label}</StatusBadge>
@@ -186,7 +193,7 @@ export default function SchoolsTable({ schools }: { schools: SchoolListItem[] })
                     <SchoolAvatar name={s.name} />
                     <div className="min-w-0">
                       <p className="font-semibold text-xk-text text-sm truncate">{s.name}</p>
-                      {s.city && <p className="text-[11px] text-xk-text-muted">{s.city}</p>}
+                      {(s.state ?? s.city) && <p className="text-[11px] text-xk-text-muted">{s.state ?? s.city}</p>}
                     </div>
                   </div>
                   <StatusBadge tone={st.tone}>{st.label}</StatusBadge>
