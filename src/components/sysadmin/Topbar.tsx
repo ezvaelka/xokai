@@ -5,15 +5,17 @@ import { Search, LogOut, ArrowLeft } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
-import MobileNav from '@/components/MobileNav'
+import MobileNav, { type MobileNavSection } from '@/components/MobileNav'
 import { cn } from '@/lib/utils'
 
 type Props = {
-  items: { label: string; href: string; icon: React.ReactNode }[]
+  items:          { label: string; href: string; icon: React.ReactNode }[]
+  sections?:      MobileNavSection[]
+  schoolName?:    string
   onOpenCommand?: () => void
 }
 
-export default function Topbar({ items, onOpenCommand }: Props) {
+export default function Topbar({ items, sections, schoolName, onOpenCommand }: Props) {
   const router = useRouter()
   const pathname = usePathname()
   const [mac, setMac] = useState(true)
@@ -48,7 +50,7 @@ export default function Topbar({ items, onOpenCommand }: Props) {
           </Link>
         )}
         <div className="lg:hidden">
-          <MobileNav items={items} schoolName="Sysadmin" />
+          <MobileNav items={items} sections={sections} schoolName={schoolName} />
         </div>
         {!isSchoolDetail && (
           <span className="lg:hidden font-heading text-base font-bold text-xk-text">Xokai</span>
