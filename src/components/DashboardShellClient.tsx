@@ -2,11 +2,30 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import {
+  LayoutDashboard, Users, FolderOpen, MessageSquare,
+  CreditCard, FileText, Radio, UserPlus, Settings, User,
+  type LucideIcon,
+} from 'lucide-react'
 import Sidebar from './sysadmin/Sidebar'
 import type { SidebarItem } from './sysadmin/Sidebar'
 import Topbar from './sysadmin/Topbar'
 import CommandPalette from './sysadmin/CommandPalette'
 import { clearImpersonation } from '@/app/actions/impersonate'
+
+// Nav items definidos en el cliente (los iconos no pueden cruzar el límite RSC)
+const ALL_NAV: (SidebarItem & { roles: readonly string[] })[] = [
+  { label: 'Dashboard',     href: '/dashboard',                        icon: LayoutDashboard, roles: ['admin', 'director', 'sysadmin', 'coordinador', 'finanzas'] },
+  { label: 'Alumnos',       href: '/dashboard/alumnos',                icon: Users,           roles: ['admin', 'director', 'sysadmin', 'coordinador'] },
+  { label: 'Grupos',        href: '/dashboard/grupos',                 icon: FolderOpen,      roles: ['admin', 'director', 'sysadmin', 'coordinador', 'maestro', 'teacher'] },
+  { label: 'Comunicados',   href: '/dashboard/comunicados',            icon: MessageSquare,   roles: ['admin', 'director', 'sysadmin', 'coordinador', 'maestro', 'teacher'] },
+  { label: 'Pagos',         href: '/dashboard/pagos',                  icon: CreditCard,      roles: ['admin', 'director', 'sysadmin', 'finanzas'] },
+  { label: 'Documentos',    href: '/dashboard/documentos',             icon: FileText,        roles: ['admin', 'director', 'sysadmin'] },
+  { label: 'Pickup',        href: '/dashboard/pickup',                 icon: Radio,           roles: ['admin', 'director', 'sysadmin', 'portero'] },
+  { label: 'Usuarios',      href: '/dashboard/configuracion/usuarios', icon: UserPlus,        roles: ['admin', 'director', 'sysadmin'] },
+  { label: 'Configuración', href: '/dashboard/configuracion',          icon: Settings,        roles: ['admin', 'director', 'sysadmin'] },
+  { label: 'Perfil',        href: '/dashboard/perfil',                 icon: User,            roles: ['admin', 'director', 'sysadmin', 'coordinador', 'finanzas', 'maestro', 'teacher', 'portero'] },
+]
 
 type ImpersonatingData = {
   schoolId:   string
@@ -21,7 +40,6 @@ type Props = {
   schoolName:    string
   schoolActive:  boolean
   role:          string
-  items:         SidebarItem[]
   impersonating: ImpersonatingData | null
   children:      React.ReactNode
 }
@@ -34,13 +52,23 @@ export default function DashboardShellClient({
   schoolName,
   schoolActive,
   role,
-  items,
   impersonating,
   children,
 }: Props) {
   const router = useRouter()
   const [cmdOpen, setCmdOpen] = useState(false)
   const [exitingImpersonation, setExitingImpersonation] = useState(false)
+
+  // Filtrar nav por rol — hecho aquí en el cliente para evitar pasar funciones desde el server
+  const items: SidebarItem[] = ALL_NAV
+    .filter((item) => (item.roles as readonly string[]).includes(role))
+    .map(({ label, href, icon }) => ({ label, href, icon } as SidebarItem))
+
+  const mobileNavItems = items.slice(0, 5).map((item) => ({
+    label: item.label,
+    href:  item.href,
+    icon:  <item.icon className="w-[18px] h-[18px]" />,
+  }))
 
   useEffect(() => {
     function handler(e: KeyboardEvent) {
@@ -60,17 +88,9 @@ export default function DashboardShellClient({
     try {
       await clearImpersonation()
     } catch {
-      // clearImpersonation hace redirect, el error es esperado
       router.push('/sysadmin')
     }
   }
-
-  // Mobile nav: subset de los primeros 5 items
-  const mobileNavItems = items.slice(0, 5).map((item) => ({
-    label: item.label,
-    href:  item.href,
-    icon:  <item.icon className="w-[18px] h-[18px]" />,
-  }))
 
   const showPendingBanner = !schoolActive && !impersonating
 
