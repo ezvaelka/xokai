@@ -62,7 +62,7 @@ export default function ShellClient({ userName, userEmail, avatarUrl, initials, 
       <div className="flex-1 flex flex-col min-w-0">
         <Topbar items={MOBILE_NAV_ITEMS} onOpenCommand={() => setCmdOpen(true)} />
         <main className="flex-1 overflow-y-auto xk-scroll">
-          <div className="max-w-[1320px] mx-auto px-4 lg:px-6 py-6 lg:py-8">
+          <div className="max-w-[1600px] mx-auto w-full px-4 lg:px-6 py-6 lg:py-8">
             {children}
           </div>
         </main>
