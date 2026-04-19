@@ -74,3 +74,36 @@ export async function getEffectiveSchoolId(): Promise<string | null> {
   const user = await getCurrentUser()
   return user.schoolId
 }
+
+/**
+ * Exige admin/director de escuela o sysadmin impersonando.
+ * Devuelve userId + schoolId efectivo (el impersonado si aplica).
+ * Úsalo en server actions que mutan/leen datos de una escuela.
+ */
+export async function requireSchoolAdmin(): Promise<{ userId: string; schoolId: string }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('No autenticado')
+
+  const { data: profile } = await supabase
+    .from('user_profiles')
+    .select('school_id, role')
+    .eq('id', user.id)
+    .single()
+
+  if (!profile) throw new Error('Perfil no encontrado')
+
+  // Sysadmin impersonando una escuela → usa el schoolId de la cookie.
+  if (profile.role === 'sysadmin') {
+    const imp = await getImpersonatingSchool()
+    if (imp) return { userId: user.id, schoolId: imp.schoolId }
+    throw new Error('Acceso denegado: requiere rol admin o director')
+  }
+
+  if (!['admin', 'director'].includes(profile.role)) {
+    throw new Error('Acceso denegado: requiere rol admin o director')
+  }
+  if (!profile.school_id) throw new Error('Usuario sin escuela asignada')
+
+  return { userId: user.id, schoolId: profile.school_id }
+}
