@@ -7,8 +7,8 @@ import { zodResolver }        from '@hookform/resolvers/zod'
 import { z }                  from 'zod'
 import { toast }              from 'sonner'
 import {
-  Loader2, User, Lock, Eye, EyeOff, Upload, LogOut,
-  ShieldAlert, Camera, AlertCircle, Key, Copy, Check
+  Loader2, User, Lock, Eye, EyeOff, LogOut,
+  ShieldAlert, Camera, AlertCircle, Building2
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input }  from '@/components/ui/input'
@@ -39,18 +39,18 @@ const passwordSchema = z
 type ProfileForm  = z.infer<typeof profileSchema>
 type PasswordForm = z.infer<typeof passwordSchema>
 
-// ─── Etiquetas de rol ─────────────────────────────────────────────────────────
+// ─── Etiquetas y colores de rol ───────────────────────────────────────────────
 
-const ROLE_LABELS: Record<string, string> = {
-  sysadmin:    'Sysadmin',
-  admin:       'Director',      // backward compat
-  director:    'Director',
-  coordinador: 'Coordinador',
-  maestro:     'Maestro',
-  teacher:     'Maestro',       // backward compat
-  portero:     'Portero',
-  finanzas:    'Finanzas',
-  guardian:    'Padre / Tutor',
+const ROLE_META: Record<string, { label: string; className: string }> = {
+  sysadmin:    { label: 'Sysadmin',     className: 'bg-xk-accent-light text-xk-accent-dark' },
+  admin:       { label: 'Director',     className: 'bg-emerald-50 text-emerald-700' },
+  director:    { label: 'Director',     className: 'bg-emerald-50 text-emerald-700' },
+  coordinador: { label: 'Coordinador',  className: 'bg-blue-50 text-blue-700' },
+  maestro:     { label: 'Maestro',      className: 'bg-amber-50 text-amber-700' },
+  teacher:     { label: 'Maestro',      className: 'bg-amber-50 text-amber-700' },
+  portero:     { label: 'Portero',      className: 'bg-xk-subtle text-xk-text-secondary' },
+  finanzas:    { label: 'Finanzas',     className: 'bg-teal-50 text-teal-700' },
+  guardian:    { label: 'Padre / Tutor', className: 'bg-xk-subtle text-xk-text-secondary' },
 }
 
 // ─── Componente ───────────────────────────────────────────────────────────────
@@ -62,11 +62,11 @@ interface Props {
   initialLastName:  string
   initialAvatarUrl: string | null
   role:             string
-  joinCode:         string | null
+  schoolName:       string | null
 }
 
 export default function PerfilClient({
-  userId, email, initialFirstName, initialLastName, initialAvatarUrl, role, joinCode
+  userId, email, initialFirstName, initialLastName, initialAvatarUrl, role, schoolName
 }: Props) {
   const router = useRouter()
 
@@ -76,7 +76,6 @@ export default function PerfilClient({
   const [showCfm,      setShowCfm]      = useState(false)
   const [confirmLogout, setConfirmLogout] = useState(false)
   const [loggingOut,   setLoggingOut]   = useState(false)
-  const [copied,       setCopied]       = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const profileForm = useForm<ProfileForm>({
@@ -210,12 +209,28 @@ export default function PerfilClient({
           </p>
         </div>
 
-        {/* Rol */}
-        <div className="mb-6">
-          <Label>Rol</Label>
-          <div className="mt-1.5 flex h-9 w-full items-center rounded-xl border border-xk-border bg-xk-subtle px-3 text-sm text-xk-text-secondary">
-            {ROLE_LABELS[role] ?? role}
+        {/* Rol + Escuela */}
+        <div className="grid grid-cols-2 gap-4 mb-6">
+          <div>
+            <Label>Rol</Label>
+            <div className="mt-1.5">
+              <span className={[
+                'inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium border border-transparent',
+                ROLE_META[role]?.className ?? 'bg-xk-subtle text-xk-text-secondary',
+              ].join(' ')}>
+                {ROLE_META[role]?.label ?? role}
+              </span>
+            </div>
           </div>
+          {schoolName && (
+            <div>
+              <Label>Escuela</Label>
+              <div className="mt-1.5 flex items-center gap-2 h-9 px-3 rounded-xl border border-xk-border bg-xk-subtle text-sm text-xk-text-secondary">
+                <Building2 size={14} className="text-xk-text-muted shrink-0" />
+                <span className="truncate">{schoolName}</span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Nombre */}
@@ -252,34 +267,6 @@ export default function PerfilClient({
           </div>
         </form>
       </section>
-
-      {/* ── Sección: código de escuela ── */}
-      {joinCode && (
-        <section className="bg-xk-card rounded-2xl border border-xk-border p-6">
-          <h2 className="font-semibold text-xk-text mb-1 flex items-center gap-2">
-            <Key size={18} className="text-xk-accent" /> Código de acceso de la escuela
-          </h2>
-          <p className="text-sm text-xk-text-secondary mb-4">
-            Comparte este código con maestros y staff para que se unan a tu escuela en Xokai.
-          </p>
-          <div className="flex items-center gap-3 bg-xk-subtle border border-xk-border rounded-xl px-4 py-3">
-            <span className="font-mono text-2xl font-bold text-xk-text tracking-[0.2em] flex-1">
-              {joinCode}
-            </span>
-            <button
-              onClick={() => {
-                navigator.clipboard.writeText(joinCode)
-                setCopied(true)
-                setTimeout(() => setCopied(false), 2000)
-              }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-xk-card border border-xk-border text-xs font-medium text-xk-text-secondary hover:text-xk-accent hover:border-xk-accent transition-colors"
-            >
-              {copied ? <Check size={12} /> : <Copy size={12} />}
-              {copied ? 'Copiado' : 'Copiar'}
-            </button>
-          </div>
-        </section>
-      )}
 
       {/* ── Sección: cambiar contraseña ── */}
       <section className="bg-xk-card rounded-2xl border border-xk-border p-6">

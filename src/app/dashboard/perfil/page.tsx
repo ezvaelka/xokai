@@ -13,25 +13,33 @@ export default async function PerfilPage() {
     .eq('id', user.id)
     .single()
 
-  let joinCode: string | null = null
-  if (profile?.school_id) {
+  const profileData = profile as {
+    first_name: string | null
+    last_name:  string | null
+    avatar_url: string | null
+    role:       string
+    school_id:  string | null
+  } | null
+
+  let schoolName: string | null = null
+  if (profileData?.school_id) {
     const { data: school } = await supabase
       .from('schools')
-      .select('join_code')
-      .eq('id', profile.school_id)
+      .select('name')
+      .eq('id', profileData.school_id)
       .single()
-    joinCode = school?.join_code ?? null
+    schoolName = (school as { name: string } | null)?.name ?? null
   }
 
   return (
     <PerfilClient
       userId={user.id}
       email={user.email ?? ''}
-      initialFirstName={profile?.first_name ?? ''}
-      initialLastName={profile?.last_name  ?? ''}
-      initialAvatarUrl={profile?.avatar_url ?? null}
-      role={profile?.role ?? 'admin'}
-      joinCode={joinCode}
+      initialFirstName={profileData?.first_name ?? ''}
+      initialLastName={profileData?.last_name  ?? ''}
+      initialAvatarUrl={profileData?.avatar_url ?? null}
+      role={profileData?.role ?? 'admin'}
+      schoolName={schoolName}
     />
   )
 }
