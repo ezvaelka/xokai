@@ -11,6 +11,7 @@ export type SidebarItem = {
   href:  string
   icon:  LucideIcon
   badge?: string | number
+  badgeTone?: 'accent' | 'danger'
 }
 
 export const SYSADMIN_ITEMS: SidebarItem[] = [
@@ -98,9 +99,17 @@ export default function Sidebar({ userName, userEmail, avatarUrl, initials, item
                 <Icon className={cn('w-[18px] h-[18px] shrink-0', active ? 'text-xk-accent' : 'text-xk-text-muted group-hover:text-xk-text')} />
                 {!collapsed && <span className="truncate">{item.label}</span>}
                 {!collapsed && item.badge !== undefined && (
-                  <span className="ml-auto inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-xk-accent/10 text-xk-accent text-[10px] font-semibold xk-num">
+                  <span className={cn(
+                    'ml-auto inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-semibold xk-num',
+                    item.badgeTone === 'danger'
+                      ? 'bg-red-500 text-white'
+                      : 'bg-xk-accent/10 text-xk-accent',
+                  )}>
                     {item.badge}
                   </span>
+                )}
+                {collapsed && item.badge !== undefined && item.badgeTone === 'danger' && (
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500" />
                 )}
               </Link>
             )
