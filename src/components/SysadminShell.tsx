@@ -65,12 +65,20 @@ export default async function SysadminShell({ children }: ShellProps) {
   const initials  = (profile.first_name?.[0] ?? userEmail[0] ?? 'S').toUpperCase()
   const avatarUrl = profile.avatar_url ?? null
 
+  // Count pending schools for sidebar badge
+  const { count: pendingCount } = await supabase
+    .from('schools')
+    .select('id', { count: 'exact', head: true })
+    .eq('active', false)
+    .eq('onboarding_completed', true)
+
   return (
     <ShellClient
       userName={fullName}
       userEmail={userEmail}
       avatarUrl={avatarUrl}
       initials={initials}
+      pendingSchools={pendingCount ?? 0}
     >
       {children}
     </ShellClient>

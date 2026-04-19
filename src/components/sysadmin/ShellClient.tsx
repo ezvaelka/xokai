@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import Sidebar, { SYSADMIN_ITEMS } from './Sidebar'
+import { useEffect, useState, useMemo } from 'react'
+import Sidebar, { SYSADMIN_ITEMS, type SidebarItem } from './Sidebar'
 import Topbar from './Topbar'
 import CommandPalette from './CommandPalette'
 import { Building2, LayoutDashboard, User } from 'lucide-react'
@@ -11,6 +11,7 @@ type Props = {
   userEmail: string
   avatarUrl: string | null
   initials:  string
+  pendingSchools?: number
   children:  React.ReactNode
 }
 
@@ -33,8 +34,14 @@ const MOBILE_NAV_ITEMS = [
   },
 ]
 
-export default function ShellClient({ userName, userEmail, avatarUrl, initials, children }: Props) {
+export default function ShellClient({ userName, userEmail, avatarUrl, initials, pendingSchools = 0, children }: Props) {
   const [cmdOpen, setCmdOpen] = useState(false)
+
+  const sidebarItems = useMemo<SidebarItem[]>(() => SYSADMIN_ITEMS.map(item =>
+    item.href === '/sysadmin/schools' && pendingSchools > 0
+      ? { ...item, badge: pendingSchools, badgeTone: 'danger' as const }
+      : item
+  ), [pendingSchools])
 
   useEffect(() => {
     function handler(e: KeyboardEvent) {
@@ -56,7 +63,7 @@ export default function ShellClient({ userName, userEmail, avatarUrl, initials, 
         userEmail={userEmail}
         avatarUrl={avatarUrl}
         initials={initials}
-        items={SYSADMIN_ITEMS}
+        items={sidebarItems}
       />
 
       <div className="flex-1 flex flex-col min-w-0">
