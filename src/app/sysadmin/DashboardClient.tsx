@@ -248,7 +248,7 @@ export default function DashboardClient({ metrics: m, schools, firstName }: Prop
       )}
 
       {/* Metric cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 w-full">
         <MetricCard
           label="MRR"
           value={fmtUsd(mrrUsd)}
@@ -258,7 +258,7 @@ export default function DashboardClient({ metrics: m, schools, firstName }: Prop
           delta={mrrUsd > 0 ? { value: `${activeSchools} activa${activeSchools !== 1 ? 's' : ''}`, trend: 'up' } : undefined}
         />
         <MetricCard
-          label={selectedId === 'all' ? 'Escuelas activas' : 'Estatus'}
+          label="Escuelas activas"
           value={selectedId === 'all' ? activeSchools : (STATUS_TONE[selected?.status ?? 'paused']?.label ?? '—')}
           sublabel={selectedId === 'all' ? `${utilizacion}% del total` : (selected?.city ?? '—')}
           icon={Building2}
@@ -267,7 +267,7 @@ export default function DashboardClient({ metrics: m, schools, firstName }: Prop
         <MetricCard
           label="Alumnos"
           value={totalStudents.toLocaleString()}
-          sublabel={selectedId === 'all' ? 'En todas las escuelas' : 'En esta escuela'}
+          sublabel={selectedId === 'all' ? `en ${filteredSchools.length} ${filteredSchools.length === 1 ? 'escuela' : 'escuelas'}` : 'En esta escuela'}
           icon={Users}
           iconTone="neutral"
         />
