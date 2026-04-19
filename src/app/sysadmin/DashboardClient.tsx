@@ -13,6 +13,14 @@ import type { SysadminMetrics, SchoolListItem } from '@/app/actions/sysadmin'
 type Props = {
   metrics: SysadminMetrics
   schools: SchoolListItem[]
+  firstName: string
+}
+
+function greeting() {
+  const h = new Date().getHours()
+  if (h < 12) return 'Buenos días'
+  if (h < 19) return 'Buenas tardes'
+  return 'Buenas noches'
 }
 
 const STATUS_TONE = {
@@ -90,7 +98,7 @@ function fmtUsd(n: number) {
 
 const SELECT_CLASS = 'h-8 px-2.5 rounded-lg border border-xk-border bg-xk-surface text-xs text-xk-text focus:outline-none focus:ring-2 focus:ring-xk-accent/20 focus:border-xk-accent transition-colors'
 
-export default function DashboardClient({ metrics: m, schools }: Props) {
+export default function DashboardClient({ metrics: m, schools, firstName }: Props) {
   const [selectedId, setSelectedId]     = useState<string | 'all'>('all')
   const [search, setSearch]             = useState('')
   const [regionFilter, setRegionFilter] = useState('')
@@ -133,30 +141,58 @@ export default function DashboardClient({ metrics: m, schools }: Props) {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-start justify-between flex-wrap gap-3">
-        <div>
-          <p className="text-xs font-medium text-xk-text-muted uppercase tracking-widest mb-1">Panel global</p>
-          <h1 className="text-2xl font-semibold tracking-tight text-xk-text">Dashboard</h1>
-        </div>
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
+        <h1 className="text-[clamp(20px,2.2vw,28px)] font-semibold tracking-tight text-xk-text">
+          {greeting()}, {firstName} <span className="inline-block">👋</span>
+        </h1>
+        <div className="flex flex-wrap items-center gap-2">
           <div className="relative">
             <select
               value={selectedId}
               onChange={e => setSelectedId(e.target.value)}
-              className="appearance-none pl-3 pr-8 py-2 rounded-lg border border-xk-border bg-xk-surface text-sm text-xk-text cursor-pointer hover:border-xk-border focus:outline-none focus:ring-2 focus:ring-xk-accent/20 focus:border-xk-accent transition-colors"
+              className="appearance-none h-9 pl-3 pr-8 rounded-lg border border-xk-border bg-xk-surface text-xs text-xk-text cursor-pointer hover:border-xk-border-strong focus:outline-none focus:ring-2 focus:ring-xk-accent/20 focus:border-xk-accent transition-colors min-w-[160px]"
             >
               <option value="all">Todas las escuelas</option>
-              {schools.map(s => (
-                <option key={s.id} value={s.id}>{s.name}</option>
-              ))}
+              {schools.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-xk-text-muted pointer-events-none" />
+          </div>
+          <div className="relative">
+            <select
+              value={regionFilter}
+              onChange={e => setRegionFilter(e.target.value)}
+              className="appearance-none h-9 pl-3 pr-8 rounded-lg border border-xk-border bg-xk-surface text-xs text-xk-text cursor-pointer hover:border-xk-border-strong focus:outline-none focus:ring-2 focus:ring-xk-accent/20 focus:border-xk-accent transition-colors min-w-[160px]"
+            >
+              <option value="">Todas las regiones</option>
+              <optgroup label="🇲🇽 México">
+                {MX_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+              </optgroup>
+              <optgroup label="América Latina">
+                {LATAM_COUNTRIES.map(c => <option key={c.name} value={c.name}>{c.flag} {c.name}</option>)}
+              </optgroup>
+            </select>
+            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-xk-text-muted pointer-events-none" />
+          </div>
+          <div className="relative">
+            <select
+              value={planFilter}
+              onChange={e => setPlanFilter(e.target.value)}
+              className="appearance-none h-9 pl-3 pr-8 rounded-lg border border-xk-border bg-xk-surface text-xs text-xk-text cursor-pointer hover:border-xk-border-strong focus:outline-none focus:ring-2 focus:ring-xk-accent/20 focus:border-xk-accent transition-colors min-w-[140px]"
+            >
+              <option value="">Todos los planes</option>
+              <option value="trial">Trial</option>
+              <option value="base">Base</option>
+              <option value="base_pickup">Base+Pickup</option>
+              <option value="suspended">Suspendida</option>
+              <option value="churned">Churned</option>
             </select>
             <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-xk-text-muted pointer-events-none" />
           </div>
           <Link
             href="/sysadmin/schools/new"
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-xk-accent text-white text-sm font-medium hover:bg-xk-accent-dark transition-colors shadow-sm"
+            className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-xk-accent text-white text-xs font-medium hover:bg-xk-accent-dark transition-colors shadow-sm whitespace-nowrap"
           >
-            + Nueva
+            + Nueva escuela
           </Link>
         </div>
       </div>
