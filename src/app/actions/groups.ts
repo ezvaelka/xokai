@@ -6,16 +6,18 @@ import { createClient }   from '@/lib/supabase/server'
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
 export type GroupItem = {
-  id:                  string
-  name:                string
-  grade:               number | null
-  level:               string | null
-  academic_year:       string
-  active:              boolean
-  student_count:       number
-  teacher_name:        string | null
-  teacher_primary_id:  string | null
-  created_at:          string
+  id:                   string
+  name:                 string
+  grade:                number | null
+  level:                string | null
+  academic_year:        string
+  active:               boolean
+  student_count:        number
+  teacher_name:         string | null
+  teacher_primary_id:   string | null
+  teacher_spanish_id:   string | null
+  teacher_assistant_id: string | null
+  created_at:           string
 }
 
 export type GroupDetail = GroupItem & {
@@ -80,6 +82,8 @@ export async function listGroups(): Promise<GroupItem[]> {
       academic_year,
       active,
       teacher_primary_id,
+      teacher_spanish_id,
+      teacher_assistant_id,
       created_at,
       teacher:user_profiles!groups_teacher_primary_id_fkey (
         first_name,
@@ -115,16 +119,18 @@ export async function listGroups(): Promise<GroupItem[]> {
       : null
 
     return {
-      id:                 g.id,
-      name:               g.name,
-      grade:              g.grade,
-      level:              g.level,
-      academic_year:      g.academic_year,
-      active:             g.active,
-      student_count:      studentCountMap.get(g.id) ?? 0,
-      teacher_name:       teacherName,
-      teacher_primary_id: g.teacher_primary_id,
-      created_at:         g.created_at,
+      id:                   g.id,
+      name:                 g.name,
+      grade:                g.grade,
+      level:                g.level,
+      academic_year:        g.academic_year,
+      active:               g.active,
+      student_count:        studentCountMap.get(g.id) ?? 0,
+      teacher_name:         teacherName,
+      teacher_primary_id:   g.teacher_primary_id,
+      teacher_spanish_id:   g.teacher_spanish_id,
+      teacher_assistant_id: g.teacher_assistant_id,
+      created_at:           g.created_at,
     }
   })
 }
@@ -286,4 +292,31 @@ export async function deleteGroup(groupId: string): Promise<{ error: string | nu
 
   revalidatePath('/dashboard/grupos')
   return { error: null }
+}
+
+// ─── listTeachersForSchool ────────────────────────────────────────────────────
+
+export type TeacherOption = {
+  id:         string
+  first_name: string
+  last_name:  string
+}
+
+export async function listTeachersForSchool(): Promise<TeacherOption[]> {
+  const { schoolId } = await requireSchoolAdmin()
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from('user_profiles')
+    .select('id, first_name, last_name')
+    .eq('school_id', schoolId)
+    .in('role', ['teacher', 'maestro'])
+    .order('last_name', { ascending: true })
+
+  if (error) throw new Error(error.message)
+  return (data ?? []).map((t) => ({
+    id:         t.id,
+    first_name: t.first_name ?? '',
+    last_name:  t.last_name  ?? '',
+  }))
 }
