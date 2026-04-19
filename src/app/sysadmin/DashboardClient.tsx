@@ -131,8 +131,6 @@ function fmtUsd(n: number) {
   return n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
 }
 
-const SELECT_CLASS = 'h-8 px-2.5 rounded-lg border border-xk-border bg-xk-surface text-xs text-xk-text focus:outline-none focus:ring-2 focus:ring-xk-accent/20 focus:border-xk-accent transition-colors'
-
 export default function DashboardClient({ metrics: m, schools, firstName }: Props) {
   const [selectedId, setSelectedId]     = useState<string | 'all'>('all')
   const [search, setSearch]             = useState('')
@@ -436,13 +434,23 @@ export default function DashboardClient({ metrics: m, schools, firstName }: Prop
         </div>
       )}
 
-      {/* Filtros + Últimas escuelas — global view only */}
+      {/* Últimas escuelas — global view only */}
       {selectedId === 'all' && (
-        <div className="xk-surface-elevated overflow-hidden">
+        <div className="xk-surface-elevated overflow-hidden w-full">
           <div className="flex items-center justify-between px-5 py-4 border-b border-xk-border/50 flex-wrap gap-3">
-            <h2 className="text-sm font-semibold text-xk-text">Últimas escuelas</h2>
+            <div className="flex items-center gap-3">
+              <h2 className="text-sm font-semibold text-xk-text">Últimas escuelas</h2>
+              {donutFilter && (
+                <button
+                  onClick={() => setDonutFilter(null)}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-xk-accent-light text-xk-accent-dark text-[11px] font-medium hover:bg-xk-accent/15"
+                >
+                  {donutFilter}
+                  <span className="text-xs">×</span>
+                </button>
+              )}
+            </div>
             <div className="flex items-center gap-2 flex-wrap">
-              {/* Search */}
               <div className="relative">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-xk-text-muted pointer-events-none" />
                 <input
@@ -452,52 +460,68 @@ export default function DashboardClient({ metrics: m, schools, firstName }: Prop
                   className="h-8 pl-8 pr-3 rounded-lg border border-xk-border bg-xk-surface text-xs text-xk-text placeholder:text-xk-text-muted focus:outline-none focus:ring-2 focus:ring-xk-accent/20 focus:border-xk-accent transition-colors w-44"
                 />
               </div>
-              {/* Región */}
-              <select value={regionFilter} onChange={e => setRegionFilter(e.target.value)} className={SELECT_CLASS}>
-                <option value="">Todas las regiones</option>
-                <optgroup label="🇲🇽 México">
-                  {MX_STATES.map(s => <option key={s} value={s}>{s}</option>)}
-                </optgroup>
-                <optgroup label="América Latina">
-                  {LATAM_COUNTRIES.map(c => <option key={c.name} value={c.name}>{c.flag} {c.name}</option>)}
-                </optgroup>
-              </select>
-              {/* Plan */}
-              <select value={planFilter} onChange={e => setPlanFilter(e.target.value)} className={SELECT_CLASS}>
-                <option value="">Todos los planes</option>
-                <option value="trial">Trial</option>
-                <option value="base">Base</option>
-                <option value="base_pickup">Base+Pickup</option>
-              </select>
-              <Link href="/sysadmin/schools" className="text-xs text-xk-accent hover:text-xk-accent-dark font-medium whitespace-nowrap">
-                Ver todas →
+              <Link
+                href="/sysadmin/schools"
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-xk-accent/30 text-xs font-medium text-xk-accent hover:bg-xk-accent-light transition-colors whitespace-nowrap"
+              >
+                Ver todas <ArrowRight className="w-3 h-3" />
               </Link>
             </div>
           </div>
           {visibleSchools.length > 0 ? (
             <div className="divide-y divide-xk-border/40">
               {visibleSchools.slice(0, 8).map((s) => (
-                <Link
-                  key={s.id}
-                  href={`/sysadmin/schools/${s.id}`}
-                  className="flex items-center gap-4 px-5 py-3.5 hover:bg-xk-subtle/50 transition-all duration-150 group"
-                >
-                  <div className="w-8 h-8 rounded-lg bg-xk-accent-light flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-200">
-                    <span className="text-[11px] font-bold text-xk-accent">{s.name.slice(0, 2).toUpperCase()}</span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-xk-text truncate">{s.name}</p>
-                    <p className="text-xs text-xk-text-muted">{s.state ?? s.city ?? '—'}</p>
-                  </div>
-                  <div className="flex items-center gap-3 shrink-0">
-                    <div className="flex items-center gap-1 text-xk-text-muted">
-                      <Users className="w-3.5 h-3.5" />
-                      <span className="xk-num text-xs">{s.student_count}</span>
+                <div key={s.id} className="group relative hover:bg-xk-accent-light/40 transition-colors">
+                  <Link
+                    href={`/sysadmin/schools/${s.id}`}
+                    className="flex items-center gap-4 px-5 py-3.5"
+                  >
+                    <div className="w-9 h-9 rounded-lg bg-xk-accent-light flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-200">
+                      <span className="text-[11px] font-bold text-xk-accent">{s.name.slice(0, 2).toUpperCase()}</span>
                     </div>
-                    <span className="text-xs text-xk-text-muted">{fmtDate(s.created_at)}</span>
-                    <ArrowRight className="w-3.5 h-3.5 text-xk-text-muted opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-xk-text truncate">{s.name}</p>
+                      <p className="text-xs text-xk-text-muted truncate">{s.state ?? s.city ?? '—'}</p>
+                    </div>
+                    {/* Alumnos */}
+                    <div className="hidden sm:flex items-center gap-1 text-xk-text-secondary shrink-0 w-16 justify-end">
+                      <Users className="w-3.5 h-3.5" />
+                      <span className="xk-num text-xs font-medium">{s.student_count}</span>
+                    </div>
+                    {/* MRR */}
+                    <div className="hidden md:flex items-center shrink-0 w-20 justify-end">
+                      {s.mrr_usd > 0 ? (
+                        <span className="xk-num text-xs font-semibold text-emerald-700">${s.mrr_usd}</span>
+                      ) : (
+                        <span className="text-xs text-xk-text-muted">—</span>
+                      )}
+                    </div>
+                    {/* Status badge */}
+                    <div className="hidden lg:block shrink-0">
+                      <StatusBadge tone={STATUS_TONE[s.status]?.tone ?? 'neutral'} dot={false}>
+                        {STATUS_TONE[s.status]?.label ?? s.status}
+                      </StatusBadge>
+                    </div>
+                    <span className="hidden xl:inline text-xs text-xk-text-muted shrink-0 w-14 text-right">{fmtDate(s.created_at)}</span>
+                  </Link>
+                  {/* Hover actions — absolute overlay al hover */}
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-xk-surface/95 backdrop-blur-sm rounded-lg px-1 py-1 shadow-sm pointer-events-auto">
+                    <Link
+                      href={`/sysadmin/schools/${s.id}`}
+                      className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium text-xk-text-secondary hover:bg-xk-subtle hover:text-xk-text transition-colors"
+                      onClick={e => e.stopPropagation()}
+                    >
+                      <Eye className="w-3 h-3" /> Ver
+                    </Link>
+                    <Link
+                      href={`/sysadmin/schools/${s.id}?impersonate=1`}
+                      className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium text-xk-accent hover:bg-xk-accent-light transition-colors"
+                      onClick={e => e.stopPropagation()}
+                    >
+                      <LogIn className="w-3 h-3" /> Entrar como admin
+                    </Link>
                   </div>
-                </Link>
+                </div>
               ))}
             </div>
           ) : (
