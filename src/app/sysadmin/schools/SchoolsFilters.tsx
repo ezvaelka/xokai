@@ -1,6 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { ChevronDown } from 'lucide-react'
 import type { ClassifyStatus } from '@/app/actions/sysadmin'
 import type { SchoolPlan } from '@/lib/sysadmin-constants'
 import { MX_STATES, LATAM_COUNTRIES } from '@/lib/school-locations'
@@ -13,15 +14,6 @@ const STATUS_TABS: Array<{ key: ClassifyStatus | 'all'; label: string }> = [
   { key: 'paused',     label: 'Pausadas' },
 ]
 
-const PLAN_TABS: Array<{ key: SchoolPlan | ''; label: string }> = [
-  { key: '',            label: 'Todos los planes' },
-  { key: 'trial',       label: 'Trial' },
-  { key: 'base',        label: 'Base' },
-  { key: 'base_pickup', label: 'Base+Pickup' },
-  { key: 'suspended',   label: 'Suspendida' },
-  { key: 'churned',     label: 'Churned' },
-]
-
 interface Props {
   currentStatus: ClassifyStatus | 'all'
   currentState:  string
@@ -31,17 +23,9 @@ interface Props {
 }
 
 export default function SchoolsFilters({
-  currentStatus, currentState, currentPlan, statusCounts, planCounts,
+  currentStatus, currentState, currentPlan, statusCounts,
 }: Props) {
   const router = useRouter()
-
-  function buildUrl(status: ClassifyStatus | 'all', state: string, plan: SchoolPlan | '') {
-    const p = new URLSearchParams()
-    if (status !== 'all') p.set('status', status)
-    if (state)            p.set('state', state)
-    if (plan)             p.set('plan', plan)
-    return `/sysadmin/schools${p.size > 0 ? `?${p.toString()}` : ''}`
-  }
 
   function chipClass(active: boolean) {
     return [
@@ -61,6 +45,14 @@ export default function SchoolsFilters({
         {count}
       </span>
     )
+  }
+
+  function buildUrl(status: ClassifyStatus | 'all', state: string, plan: SchoolPlan | '') {
+    const p = new URLSearchParams()
+    if (status !== 'all') p.set('status', status)
+    if (state)            p.set('state', state)
+    if (plan)             p.set('plan', plan)
+    return `/sysadmin/schools${p.size > 0 ? `?${p.toString()}` : ''}`
   }
 
   return (
@@ -85,42 +77,44 @@ export default function SchoolsFilters({
         </div>
       </div>
 
-      {/* Row 2: Plan + Región */}
-      <div className="flex flex-wrap items-center gap-2">
-        {/* Plan chips */}
-        <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 flex-1">
-          <div className="flex gap-1.5 min-w-max sm:min-w-0 sm:flex-wrap">
-            {PLAN_TABS.map((tab) => {
-              const active = currentPlan === tab.key
-              const count  = planCounts[tab.key] ?? 0
-              return (
-                <button
-                  key={tab.key}
-                  onClick={() => router.push(buildUrl(currentStatus, currentState, tab.key))}
-                  className={chipClass(active)}
-                >
-                  {tab.label}
-                  {tab.key !== '' && countBadge(active, count)}
-                </button>
-              )
-            })}
-          </div>
+      {/* Row 2: Plan + Región — 2 selects compactos, sin wrapping */}
+      <div className="flex items-center gap-2">
+        <div className="relative shrink-0">
+          <select
+            value={currentPlan}
+            onChange={(e) => router.push(buildUrl(currentStatus, currentState, e.target.value as SchoolPlan | ''))}
+            className={['appearance-none h-8 pl-3 pr-7 rounded-lg border bg-xk-surface text-xs cursor-pointer focus:outline-none focus:ring-2 focus:ring-xk-accent/20 transition-colors',
+              currentPlan ? 'border-xk-accent text-xk-accent font-medium' : 'border-xk-border text-xk-text hover:border-xk-border-strong',
+            ].join(' ')}
+          >
+            <option value="">Plan</option>
+            <option value="trial">Trial</option>
+            <option value="base">Base</option>
+            <option value="base_pickup">Base+Pickup</option>
+            <option value="suspended">Suspendida</option>
+            <option value="churned">Churned</option>
+          </select>
+          <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-xk-text-muted pointer-events-none" />
         </div>
 
-        {/* Región dropdown */}
-        <select
-          value={currentState}
-          onChange={(e) => router.push(buildUrl(currentStatus, e.target.value, currentPlan))}
-          className="h-8 px-3 rounded-lg border border-xk-border bg-xk-card text-xs text-xk-text focus:outline-none focus:ring-2 focus:ring-xk-accent/30 focus:border-xk-accent transition-colors shrink-0"
-        >
-          <option value="">Todas las regiones</option>
-          <optgroup label="🇲🇽 México">
-            {MX_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
-          </optgroup>
-          <optgroup label="América Latina">
-            {LATAM_COUNTRIES.map((c) => <option key={c.name} value={c.name}>{c.flag} {c.name}</option>)}
-          </optgroup>
-        </select>
+        <div className="relative shrink-0">
+          <select
+            value={currentState}
+            onChange={(e) => router.push(buildUrl(currentStatus, e.target.value, currentPlan))}
+            className={['appearance-none h-8 pl-3 pr-7 rounded-lg border bg-xk-surface text-xs cursor-pointer focus:outline-none focus:ring-2 focus:ring-xk-accent/20 transition-colors',
+              currentState ? 'border-xk-accent text-xk-accent font-medium' : 'border-xk-border text-xk-text hover:border-xk-border-strong',
+            ].join(' ')}
+          >
+            <option value="">Región</option>
+            <optgroup label="🇲🇽 México">
+              {MX_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
+            </optgroup>
+            <optgroup label="América Latina">
+              {LATAM_COUNTRIES.map((c) => <option key={c.name} value={c.name}>{c.flag} {c.name}</option>)}
+            </optgroup>
+          </select>
+          <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-xk-text-muted pointer-events-none" />
+        </div>
       </div>
     </div>
   )
