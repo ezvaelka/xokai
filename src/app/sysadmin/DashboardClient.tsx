@@ -167,7 +167,7 @@ export default function DashboardClient({ metrics: m, schools, firstName }: Prop
       if (statusMap[donutFilter]) return s.status === statusMap[donutFilter]
       if (planMap[donutFilter])   return s.plan   === planMap[donutFilter]
       return true
-    }), [filteredSchools, search, donutFilter])
+    }), [filteredSchools, donutFilter])
 
   const filteredSchoolsByMonth = useMemo(() => {
     const now = new Date()
