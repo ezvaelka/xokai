@@ -1,7 +1,8 @@
-import { notFound }         from 'next/navigation'
-import { getStudent }        from '@/app/actions/students'
-import { listGroups }        from '@/app/actions/groups'
-import StudentDetailContent  from './StudentDetailContent'
+import { notFound }              from 'next/navigation'
+import { getStudent }             from '@/app/actions/students'
+import { listGroups }             from '@/app/actions/groups'
+import { listAuthorizedPickups }  from '@/app/actions/authorized-pickups'
+import StudentDetailContent       from './StudentDetailContent'
 
 export default async function AlumnoDetailPage({
   params,
@@ -9,12 +10,22 @@ export default async function AlumnoDetailPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  let student, groups
+  let student, groups, authorizedPickups
   try {
-    ;[student, groups] = await Promise.all([getStudent(id), listGroups()])
+    ;[student, groups, authorizedPickups] = await Promise.all([
+      getStudent(id),
+      listGroups(),
+      listAuthorizedPickups(id),
+    ])
   } catch {
     notFound()
   }
 
-  return <StudentDetailContent student={student!} groups={groups!} />
+  return (
+    <StudentDetailContent
+      student={student!}
+      groups={groups!}
+      authorizedPickups={authorizedPickups!}
+    />
+  )
 }
