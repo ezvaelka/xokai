@@ -23,7 +23,6 @@ export type StudentItem = {
 export type StudentDetail = StudentItem & {
   allergies:     string | null
   medical_notes: string | null
-  photo_url:     string | null
 }
 
 export type CreateStudentInput = {
@@ -34,6 +33,8 @@ export type CreateStudentInput = {
   date_of_birth?: string | null
   allergies?:     string | null
   medical_notes?: string | null
+  curp?:          string | null
+  photo_url?:     string | null
 }
 
 export type UpdateStudentInput = Partial<CreateStudentInput> & { active?: boolean }
@@ -146,13 +147,15 @@ export async function getStudent(studentId: string): Promise<StudentDetail> {
       student_code,
       group_id,
       date_of_birth,
+      curp,
+      photo_url,
       active,
       created_at,
       allergies,
       medical_notes,
-      photo_url,
       group:groups!students_group_id_fkey (
-        name
+        name,
+        level
       )
     `)
     .eq('id', studentId)
@@ -162,7 +165,9 @@ export async function getStudent(studentId: string): Promise<StudentDetail> {
   if (error || !student) throw new Error(error?.message ?? 'Alumno no encontrado')
 
   const groupRaw = student.group as unknown
-  const group = Array.isArray(groupRaw) ? (groupRaw[0] as { name: string } | undefined) : null
+  const group = Array.isArray(groupRaw)
+    ? (groupRaw[0] as { name: string; level: string | null } | undefined)
+    : null
 
   return {
     id:            student.id,
@@ -170,13 +175,15 @@ export async function getStudent(studentId: string): Promise<StudentDetail> {
     last_name:     student.last_name,
     student_code:  student.student_code,
     group_id:      student.group_id,
-    group_name:    group?.name ?? null,
+    group_name:    group?.name  ?? null,
+    group_level:   group?.level ?? null,
     date_of_birth: student.date_of_birth,
+    curp:          student.curp       ?? null,
+    photo_url:     student.photo_url  ?? null,
     active:        student.active,
     created_at:    student.created_at,
     allergies:     student.allergies,
     medical_notes: student.medical_notes,
-    photo_url:     student.photo_url,
   }
 }
 
@@ -199,6 +206,8 @@ export async function createStudent(
       date_of_birth: data.date_of_birth ?? null,
       allergies:     data.allergies     ?? null,
       medical_notes: data.medical_notes ?? null,
+      curp:          data.curp          ?? null,
+      photo_url:     data.photo_url     ?? null,
     })
     .select('id')
     .single()
@@ -226,6 +235,8 @@ export async function updateStudent(
   if (data.date_of_birth !== undefined) payload.date_of_birth = data.date_of_birth
   if (data.allergies     !== undefined) payload.allergies     = data.allergies
   if (data.medical_notes !== undefined) payload.medical_notes = data.medical_notes
+  if (data.curp          !== undefined) payload.curp          = data.curp
+  if (data.photo_url     !== undefined) payload.photo_url     = data.photo_url
   if (data.active        !== undefined) payload.active        = data.active
 
   const { error } = await supabase
