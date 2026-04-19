@@ -1,110 +1,166 @@
 'use client'
 
-import { useState, useEffect }  from 'react'
-import { createPortal }         from 'react-dom'
-import { usePathname }          from 'next/navigation'
-import Link                     from 'next/link'
-import { Menu, X }              from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { createPortal }        from 'react-dom'
+import { usePathname }         from 'next/navigation'
+import Link                    from 'next/link'
+import { Menu, X }             from 'lucide-react'
+import { toast }               from 'sonner'
+import { cn }                  from '@/lib/utils'
 
 interface NavItem {
-  label:  string
-  href:   string
-  exact?: boolean
-  icon:   React.ReactNode
+  label:       string
+  href:        string
+  exact?:      boolean
+  icon:        React.ReactNode
+  comingSoon?: boolean
+}
+
+export interface MobileNavSection {
+  title?: string
+  items:  NavItem[]
 }
 
 interface Props {
-  items:      NavItem[]
-  schoolName: string
+  items?:      NavItem[]
+  sections?:   MobileNavSection[]
+  schoolName?: string
 }
 
-export default function MobileNav({ items, schoolName }: Props) {
-  const pathname = usePathname()
+export default function MobileNav({ items = [], sections, schoolName }: Props) {
+  const pathname              = usePathname()
   const [open, setOpen]       = useState(false)
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => { setMounted(true) }, [])
 
   useEffect(() => {
-    if (open) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = ''
-    }
+    document.body.style.overflow = open ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }
   }, [open])
 
-  // Close drawer on route change
   useEffect(() => { setOpen(false) }, [pathname])
 
   function isActive(item: NavItem) {
+    if (item.comingSoon || item.href === '#') return false
     if (item.exact) return pathname === item.href
+    if (item.href === '/sysadmin') return pathname === '/sysadmin'
     return pathname === item.href || pathname.startsWith(item.href + '/')
+  }
+
+  const resolvedSections: MobileNavSection[] = sections ?? [{ items }]
+
+  function renderItem(item: NavItem) {
+    const active = isActive(item)
+
+    const className = cn(
+      'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors w-full text-left',
+      active
+        ? 'bg-xk-accent-light text-xk-accent-dark'
+        : item.comingSoon
+          ? 'text-xk-text-muted cursor-default'
+          : 'text-xk-text-secondary hover:bg-xk-subtle hover:text-xk-text',
+    )
+
+    const inner = (
+      <>
+        <span className={cn('shrink-0', active ? 'text-xk-accent' : 'text-xk-text-muted')}>
+          {item.icon}
+        </span>
+        <span className="flex-1 truncate">{item.label}</span>
+        {item.comingSoon && (
+          <span className="text-[10px] font-medium text-xk-text-muted shrink-0">Pronto</span>
+        )}
+        {active && (
+          <span className="w-1.5 h-1.5 rounded-full bg-xk-accent shrink-0" />
+        )}
+      </>
+    )
+
+    if (item.comingSoon) {
+      return (
+        <button
+          key={item.label}
+          type="button"
+          onClick={() => toast('Próximamente disponible')}
+          className={className}
+        >
+          {inner}
+        </button>
+      )
+    }
+
+    return (
+      <Link
+        key={item.href}
+        href={item.href}
+        onClick={() => setOpen(false)}
+        className={className}
+      >
+        {inner}
+      </Link>
+    )
   }
 
   const drawer = (
     <>
-      {/* Backdrop */}
       <div
-        className={`fixed inset-0 z-40 bg-black/40 transition-opacity duration-300 ${open ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+        className={cn(
+          'fixed inset-0 z-40 bg-black/40 transition-opacity duration-300',
+          open ? 'opacity-100' : 'opacity-0 pointer-events-none',
+        )}
         onClick={() => setOpen(false)}
       />
 
-      {/* Drawer panel */}
       <div
-        className={`fixed top-0 left-0 bottom-0 z-50 w-[280px] bg-white shadow-2xl flex flex-col transition-transform duration-300 ease-out ${open ? 'translate-x-0' : '-translate-x-full'}`}
+        className={cn(
+          'fixed top-0 left-0 bottom-0 z-50 w-[280px] bg-xk-surface border-r border-xk-border/70 shadow-2xl flex flex-col transition-transform duration-300 ease-out',
+          open ? 'translate-x-0' : '-translate-x-full',
+        )}
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-4 border-b border-gray-100 bg-xk-accent-light shrink-0">
+        <div className="flex items-center justify-between px-4 py-4 border-b border-xk-border/60 h-[60px] shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-xk-accent flex items-center justify-center shrink-0">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-                <polyline points="9 22 9 12 15 12 15 22"/>
-              </svg>
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-xk-accent to-xk-accent-dark flex items-center justify-center shrink-0 shadow-sm">
+              <span className="text-white font-bold text-sm">X</span>
             </div>
-            <div>
-              <p className="text-base font-bold text-xk-accent leading-none">Xokai</p>
-              <p className="text-[11px] text-xk-text-secondary mt-0.5">{schoolName}</p>
+            <div className="min-w-0">
+              <p className="font-heading text-[15px] font-bold text-xk-text leading-none">Xokai</p>
+              {schoolName && (
+                <p className="text-[10px] text-xk-text-muted uppercase tracking-wider mt-0.5">{schoolName}</p>
+              )}
             </div>
           </div>
           <button
             onClick={() => setOpen(false)}
-            className="p-1.5 rounded-lg hover:bg-white/60 transition-colors"
+            className="p-1.5 rounded-lg hover:bg-xk-subtle transition-colors"
             aria-label="Cerrar"
           >
             <X size={16} className="text-xk-text-secondary" />
           </button>
         </div>
 
-        {/* Nav items */}
-        <nav className="flex-1 overflow-y-auto px-2 py-3">
-          {items.map((item) => {
-            const active = isActive(item)
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setOpen(false)}
-                className={[
-                  'flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-colors mb-0.5',
-                  active
-                    ? 'bg-xk-accent text-white'
-                    : 'text-gray-700 hover:bg-gray-100',
-                ].join(' ')}
-              >
-                <span className={active ? 'text-white' : 'text-gray-400'}>
-                  {item.icon}
-                </span>
-                {item.label}
-              </Link>
-            )
-          })}
+        <nav className="flex-1 overflow-y-auto xk-scroll px-2.5 py-3">
+          {resolvedSections.map((section, si) => (
+            <div key={si} className={si > 0 ? 'mt-4' : ''}>
+              {section.title && (
+                <p className="text-[10px] font-semibold text-xk-text-muted uppercase tracking-widest px-3 mb-1.5">
+                  {section.title}
+                </p>
+              )}
+              <div className="space-y-0.5">
+                {section.items.map((item) => (
+                  <div key={item.comingSoon ? item.label : item.href}>
+                    {renderItem(item)}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
         </nav>
 
-        <div className="px-4 py-3 border-t border-gray-100 shrink-0">
-          <p className="text-[11px] text-gray-400 text-center">© {new Date().getFullYear()} Xokai</p>
+        <div className="px-4 py-3 border-t border-xk-border/60 shrink-0">
+          <p className="text-[11px] text-xk-text-muted text-center">© {new Date().getFullYear()} Xokai</p>
         </div>
       </div>
     </>
