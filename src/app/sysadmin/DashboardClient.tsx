@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useMemo, useRef } from 'react'
+import { useState, useMemo } from 'react'
 import Link from 'next/link'
-import { Building2, Users, DollarSign, TrendingUp, ArrowRight, ChevronDown, Search, LogIn, Eye } from 'lucide-react'
+import { Building2, Users, DollarSign, TrendingUp, ArrowRight, ChevronDown, LogIn, Eye } from 'lucide-react'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 import { MetricCard } from '@/components/ui/metric-card'
 import { StatusBadge } from '@/components/ui/status-badge'
@@ -132,13 +132,11 @@ function fmtUsd(n: number) {
 }
 
 export default function DashboardClient({ metrics: m, schools, firstName }: Props) {
-  const [search, setSearch]             = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [regionFilter, setRegionFilter] = useState('')
   const [planFilter, setPlanFilter]     = useState('')
   const [chartPeriod, setChartPeriod]   = useState<3 | 6 | 12>(12)
   const [donutFilter, setDonutFilter]   = useState<string | null>(null)
-  const searchDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const handleDonutFilter = (name: string) => {
     setDonutFilter(prev => prev === name ? null : name)
@@ -154,7 +152,6 @@ export default function DashboardClient({ metrics: m, schools, firstName }: Prop
 
   const visibleSchools = useMemo(() =>
     filteredSchools.filter(s => {
-      if (search && !s.name.toLowerCase().includes(search.toLowerCase())) return false
       if (!donutFilter) return true
       const statusMap: Record<string, string> = { 'Activas': 'active', 'Onboarding': 'onboarding', 'Por aprobar': 'pending', 'Pausadas': 'paused' }
       const planMap: Record<string, string>   = { 'Trial': 'trial', 'Base': 'base', 'Base+Pickup': 'base_pickup', 'Suspendida': 'suspended', 'Churned': 'churned' }
@@ -170,11 +167,6 @@ export default function DashboardClient({ metrics: m, schools, firstName }: Prop
   const totalStudents = filteredSchools.reduce((sum, s) => sum + (s.student_count ?? 0), 0)
   const activeSchools = filteredSchools.filter(s => s.status === 'active').length
   const utilizacion   = filteredSchools.length > 0 ? Math.round((activeSchools / filteredSchools.length) * 100) : 0
-
-  function handleSearch(v: string) {
-    if (searchDebounce.current) clearTimeout(searchDebounce.current)
-    searchDebounce.current = setTimeout(() => setSearch(v), 300)
-  }
 
   const estatusData = useMemo(() => [
     { name: 'Activas',     value: filteredSchools.filter(s => s.status === 'active').length,     color: '#059669' },
@@ -376,23 +368,12 @@ export default function DashboardClient({ metrics: m, schools, firstName }: Prop
                 </button>
               )}
             </div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-xk-text-muted pointer-events-none" />
-                <input
-                  type="text"
-                  placeholder="Buscar por nombre…"
-                  onChange={e => handleSearch(e.target.value)}
-                  className="h-8 pl-8 pr-3 rounded-lg border border-xk-border bg-xk-surface text-xs text-xk-text placeholder:text-xk-text-muted focus:outline-none focus:ring-2 focus:ring-xk-accent/20 focus:border-xk-accent transition-colors w-44"
-                />
-              </div>
-              <Link
-                href="/sysadmin/schools"
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-xk-accent/30 text-xs font-medium text-xk-accent hover:bg-xk-accent-light transition-colors whitespace-nowrap"
-              >
-                Ver todas <ArrowRight className="w-3 h-3" />
-              </Link>
-            </div>
+            <Link
+              href="/sysadmin/schools"
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-xk-accent/30 text-xs font-medium text-xk-accent hover:bg-xk-accent-light transition-colors whitespace-nowrap"
+            >
+              Ver todas <ArrowRight className="w-3 h-3" />
+            </Link>
           </div>
           {visibleSchools.length > 0 ? (
             <div className="divide-y divide-xk-border/40">
