@@ -7,9 +7,14 @@ import { Plus, Search, Pencil, Trash2, Users, Loader2, FolderOpen } from 'lucide
 import { Button }        from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import GroupForm         from './GroupForm'
-import { deleteGroup, type GroupItem } from '@/app/actions/groups'
+import { deleteGroup, type GroupItem, type TeacherOption } from '@/app/actions/groups'
 
-export default function GruposClient({ groups }: { groups: GroupItem[] }) {
+interface Props {
+  groups:   GroupItem[]
+  teachers: TeacherOption[]
+}
+
+export default function GruposClient({ groups, teachers }: Props) {
   const router = useRouter()
   const [showForm, setShowForm]     = useState(false)
   const [editing, setEditing]       = useState<GroupItem | undefined>()
@@ -239,6 +244,7 @@ export default function GruposClient({ groups }: { groups: GroupItem[] }) {
       {showForm && (
         <GroupForm
           group={editing}
+          teachers={teachers}
           onClose={() => { setShowForm(false); setEditing(undefined) }}
           onSuccess={() => router.refresh()}
         />
