@@ -1,12 +1,13 @@
 'use client'
 
-import { useState, useMemo, useRef } from 'react'
+import { useState, useMemo } from 'react'
 import Link from 'next/link'
-import { Building2, Users, DollarSign, TrendingUp, ArrowRight, ChevronDown, Search, LogIn, Eye } from 'lucide-react'
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
+import { Building2, Users, DollarSign, TrendingUp, ArrowRight, ChevronDown, LogIn, Eye } from 'lucide-react'
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis } from 'recharts'
 import { MetricCard } from '@/components/ui/metric-card'
 import { StatusBadge } from '@/components/ui/status-badge'
 import MetricsChart from './MetricsChart'
+import MrrChart from './MrrChart'
 import { MX_STATES, LATAM_COUNTRIES } from '@/lib/school-locations'
 import type { SysadminMetrics, SchoolListItem } from '@/app/actions/sysadmin'
 
@@ -132,20 +133,23 @@ function fmtUsd(n: number) {
 }
 
 export default function DashboardClient({ metrics: m, schools, firstName }: Props) {
-  const [selectedId, setSelectedId]     = useState<string | 'all'>('all')
-  const [search, setSearch]             = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [regionFilter, setRegionFilter] = useState('')
   const [planFilter, setPlanFilter]     = useState('')
   const [chartPeriod, setChartPeriod]   = useState<3 | 6 | 12>(12)
   const [donutFilter, setDonutFilter]   = useState<string | null>(null)
-  const searchDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const anyFilterActive = !!statusFilter || !!regionFilter || !!planFilter
+
+  function clearFilters() {
+    setStatusFilter('')
+    setRegionFilter('')
+    setPlanFilter('')
+  }
 
   const handleDonutFilter = (name: string) => {
     setDonutFilter(prev => prev === name ? null : name)
   }
-
-  const selected = selectedId === 'all' ? null : schools.find(s => s.id === selectedId) ?? null
 
   // Schools filtered by header filters (región + plan) — afectan TODAS las métricas
   const filteredSchools = useMemo(() =>
@@ -157,35 +161,63 @@ export default function DashboardClient({ metrics: m, schools, firstName }: Prop
 
   const visibleSchools = useMemo(() =>
     filteredSchools.filter(s => {
-      if (search && !s.name.toLowerCase().includes(search.toLowerCase())) return false
       if (!donutFilter) return true
       const statusMap: Record<string, string> = { 'Activas': 'active', 'Onboarding': 'onboarding', 'Por aprobar': 'pending', 'Pausadas': 'paused' }
       const planMap: Record<string, string>   = { 'Trial': 'trial', 'Base': 'base', 'Base+Pickup': 'base_pickup', 'Suspendida': 'suspended', 'Churned': 'churned' }
       if (statusMap[donutFilter]) return s.status === statusMap[donutFilter]
       if (planMap[donutFilter])   return s.plan   === planMap[donutFilter]
       return true
-    }), [filteredSchools, search, donutFilter])
+    }), [filteredSchools, donutFilter])
 
-  const chartData = useMemo(() => m.schoolsByMonth.slice(-chartPeriod), [m.schoolsByMonth, chartPeriod])
+  const filteredSchoolsByMonth = useMemo(() => {
+    const now = new Date()
+    const months = Array.from({ length: 12 }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - (11 - i), 1)
+      return {
+        month:  d.toLocaleDateString('es-MX', { month: 'short', year: '2-digit' }),
+        isoKey: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
+      }
+    })
+    const counts: Record<string, number> = {}
+    filteredSchools.forEach(s => {
+      const k = s.created_at.slice(0, 7)
+      counts[k] = (counts[k] ?? 0) + 1
+    })
+    return months.map(mo => ({ month: mo.month, count: counts[mo.isoKey] ?? 0 })).slice(-chartPeriod)
+  }, [filteredSchools, chartPeriod])
+
+  const mrrByMonth = useMemo(() => {
+    const now = new Date()
+    return Array.from({ length: 12 }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - (11 - i), 1)
+      const isoKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+      const label  = d.toLocaleDateString('es-MX', { month: 'short', year: '2-digit' })
+      const active = filteredSchools.filter(s => s.created_at.slice(0, 7) <= isoKey)
+      return {
+        month:       label,
+        base:        active.filter(s => s.plan === 'base').reduce((sum, s) => sum + (s.mrr_usd ?? 0), 0),
+        base_pickup: active.filter(s => s.plan === 'base_pickup').reduce((sum, s) => sum + (s.mrr_usd ?? 0), 0),
+      }
+    }).slice(-chartPeriod)
+  }, [filteredSchools, chartPeriod])
+
+  const regionData = useMemo(() => {
+    const counts: Record<string, number> = {}
+    filteredSchools.forEach(s => {
+      const r = s.state ?? s.city ?? 'Sin región'
+      counts[r] = (counts[r] ?? 0) + 1
+    })
+    return Object.entries(counts)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 8)
+  }, [filteredSchools])
 
   // Métricas calculadas desde filteredSchools
-  const mrrUsd        = selectedId === 'all'
-    ? filteredSchools.reduce((sum, s) => sum + (s.mrr_usd ?? 0), 0)
-    : (selected?.mrr_usd ?? 0)
-  const totalStudents = selectedId === 'all'
-    ? filteredSchools.reduce((sum, s) => sum + (s.student_count ?? 0), 0)
-    : (selected?.student_count ?? 0)
-  const activeSchools = selectedId === 'all'
-    ? filteredSchools.filter(s => s.status === 'active').length
-    : (selected?.status === 'active' ? 1 : 0)
-  const utilizacion   = selectedId === 'all'
-    ? (filteredSchools.length > 0 ? Math.round((activeSchools / filteredSchools.length) * 100) : 0)
-    : (selected?.status === 'active' ? 100 : 0)
-
-  function handleSearch(v: string) {
-    if (searchDebounce.current) clearTimeout(searchDebounce.current)
-    searchDebounce.current = setTimeout(() => setSearch(v), 300)
-  }
+  const mrrUsd        = filteredSchools.reduce((sum, s) => sum + (s.mrr_usd ?? 0), 0)
+  const totalStudents = filteredSchools.reduce((sum, s) => sum + (s.student_count ?? 0), 0)
+  const activeSchools = filteredSchools.filter(s => s.status === 'active').length
+  const utilizacion   = filteredSchools.length > 0 ? Math.round((activeSchools / filteredSchools.length) * 100) : 0
 
   const estatusData = useMemo(() => [
     { name: 'Activas',     value: filteredSchools.filter(s => s.status === 'active').length,     color: '#059669' },
@@ -205,29 +237,21 @@ export default function DashboardClient({ metrics: m, schools, firstName }: Prop
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
+      <div className="flex flex-col gap-3">
         <h1 className="text-[clamp(20px,2.2vw,28px)] font-semibold tracking-tight text-xk-text">
           {greeting()}, {firstName} <span className="inline-block">👋</span>
         </h1>
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="relative">
-            <select
-              value={selectedId}
-              onChange={e => setSelectedId(e.target.value)}
-              className="appearance-none h-9 pl-3 pr-8 rounded-lg border border-xk-border bg-xk-surface text-xs text-xk-text cursor-pointer hover:border-xk-border-strong focus:outline-none focus:ring-2 focus:ring-xk-accent/20 focus:border-xk-accent transition-colors min-w-[160px]"
-            >
-              <option value="all">Todas las escuelas</option>
-              {schools.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-            </select>
-            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-xk-text-muted pointer-events-none" />
-          </div>
-          <div className="relative">
+        {/* Filters — single scroll row on mobile */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-0.5 -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap">
+          <div className="relative shrink-0">
             <select
               value={regionFilter}
               onChange={e => setRegionFilter(e.target.value)}
-              className="appearance-none h-9 pl-3 pr-8 rounded-lg border border-xk-border bg-xk-surface text-xs text-xk-text cursor-pointer hover:border-xk-border-strong focus:outline-none focus:ring-2 focus:ring-xk-accent/20 focus:border-xk-accent transition-colors min-w-[160px]"
+              className={['appearance-none h-8 pl-3 pr-7 rounded-lg border bg-xk-surface text-xs cursor-pointer focus:outline-none focus:ring-2 focus:ring-xk-accent/20 transition-colors',
+                regionFilter ? 'border-xk-accent text-xk-accent font-medium' : 'border-xk-border text-xk-text hover:border-xk-border-strong',
+              ].join(' ')}
             >
-              <option value="">Todas las regiones</option>
+              <option value="">Región</option>
               <optgroup label="🇲🇽 México">
                 {MX_STATES.map(s => <option key={s} value={s}>{s}</option>)}
               </optgroup>
@@ -235,66 +259,60 @@ export default function DashboardClient({ metrics: m, schools, firstName }: Prop
                 {LATAM_COUNTRIES.map(c => <option key={c.name} value={c.name}>{c.flag} {c.name}</option>)}
               </optgroup>
             </select>
-            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-xk-text-muted pointer-events-none" />
+            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-xk-text-muted pointer-events-none" />
           </div>
-          <div className="relative">
+          <div className="relative shrink-0">
             <select
               value={statusFilter}
               onChange={e => setStatusFilter(e.target.value)}
-              className="appearance-none h-9 pl-3 pr-8 rounded-lg border border-xk-border bg-xk-surface text-xs text-xk-text cursor-pointer hover:border-xk-border-strong focus:outline-none focus:ring-2 focus:ring-xk-accent/20 focus:border-xk-accent transition-colors min-w-[140px]"
+              className={['appearance-none h-8 pl-3 pr-7 rounded-lg border bg-xk-surface text-xs cursor-pointer focus:outline-none focus:ring-2 focus:ring-xk-accent/20 transition-colors',
+                statusFilter ? 'border-xk-accent text-xk-accent font-medium' : 'border-xk-border text-xk-text hover:border-xk-border-strong',
+              ].join(' ')}
             >
-              <option value="">Todos los estatus</option>
+              <option value="">Estatus</option>
               <option value="active">Activas</option>
               <option value="pending">Por aprobar</option>
               <option value="onboarding">Onboarding</option>
               <option value="paused">Pausadas</option>
             </select>
-            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-xk-text-muted pointer-events-none" />
+            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-xk-text-muted pointer-events-none" />
           </div>
-          <div className="relative">
+          <div className="relative shrink-0">
             <select
               value={planFilter}
               onChange={e => setPlanFilter(e.target.value)}
-              className="appearance-none h-9 pl-3 pr-8 rounded-lg border border-xk-border bg-xk-surface text-xs text-xk-text cursor-pointer hover:border-xk-border-strong focus:outline-none focus:ring-2 focus:ring-xk-accent/20 focus:border-xk-accent transition-colors min-w-[140px]"
+              className={['appearance-none h-8 pl-3 pr-7 rounded-lg border bg-xk-surface text-xs cursor-pointer focus:outline-none focus:ring-2 focus:ring-xk-accent/20 transition-colors',
+                planFilter ? 'border-xk-accent text-xk-accent font-medium' : 'border-xk-border text-xk-text hover:border-xk-border-strong',
+              ].join(' ')}
             >
-              <option value="">Todos los planes</option>
+              <option value="">Plan</option>
               <option value="trial">Trial</option>
               <option value="base">Base</option>
               <option value="base_pickup">Base+Pickup</option>
               <option value="suspended">Suspendida</option>
               <option value="churned">Churned</option>
             </select>
-            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-xk-text-muted pointer-events-none" />
+            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-xk-text-muted pointer-events-none" />
           </div>
+          {anyFilterActive && (
+            <button
+              onClick={clearFilters}
+              className="shrink-0 h-8 px-3 rounded-lg border border-xk-border text-xs text-xk-text-secondary hover:bg-xk-subtle hover:text-xk-text transition-colors"
+            >
+              × Limpiar
+            </button>
+          )}
           <Link
             href="/sysadmin/schools/new"
-            className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-xk-accent text-white text-xs font-medium hover:bg-xk-accent-dark transition-colors shadow-sm whitespace-nowrap"
+            className="shrink-0 inline-flex items-center gap-1.5 h-8 px-3.5 rounded-lg bg-xk-accent text-white text-xs font-medium hover:bg-xk-accent-dark transition-colors shadow-sm whitespace-nowrap"
           >
             + Nueva escuela
           </Link>
         </div>
       </div>
 
-      {/* School detail banner */}
-      {selected && (
-        <Link
-          href={`/sysadmin/schools/${selected.id}`}
-          className="flex items-center gap-3 px-4 py-3 rounded-xl bg-xk-accent-light border border-xk-accent/20 hover:bg-xk-accent/10 transition-colors group"
-        >
-          <Building2 className="w-4 h-4 text-xk-accent shrink-0" />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-xk-accent">{selected.name}</p>
-            <p className="text-xs text-xk-text-muted">{selected.city ?? '—'} · Mostrando métricas de esta escuela</p>
-          </div>
-          <StatusBadge tone={STATUS_TONE[selected.status]?.tone ?? 'neutral'}>
-            {STATUS_TONE[selected.status]?.label ?? selected.status}
-          </StatusBadge>
-          <ArrowRight className="w-4 h-4 text-xk-accent opacity-0 group-hover:opacity-100 transition-opacity" />
-        </Link>
-      )}
-
       {/* Alerta pendientes — badge morado con CTA */}
-      {selectedId === 'all' && m.pendingSchools > 0 && (
+      {m.pendingSchools > 0 && (
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 px-4 py-3 rounded-xl bg-xk-accent-light border border-xk-accent/20">
           <div className="flex items-center gap-3 flex-1">
             <span className="inline-flex items-center justify-center min-w-[32px] h-8 px-2 rounded-full bg-xk-accent text-white text-sm font-bold xk-num shrink-0">
@@ -318,22 +336,21 @@ export default function DashboardClient({ metrics: m, schools, firstName }: Prop
         <MetricCard
           label="MRR"
           value={fmtUsd(mrrUsd)}
-          sublabel={selectedId === 'all' ? 'Ingresos mensuales' : 'Esta escuela'}
+          sublabel="Ingresos mensuales"
           icon={DollarSign}
           iconTone="success"
-          delta={mrrUsd > 0 ? { value: `${activeSchools} activa${activeSchools !== 1 ? 's' : ''}`, trend: 'up' } : undefined}
         />
         <MetricCard
           label="Escuelas activas"
-          value={selectedId === 'all' ? activeSchools : (STATUS_TONE[selected?.status ?? 'paused']?.label ?? '—')}
-          sublabel={selectedId === 'all' ? `${utilizacion}% del total` : (selected?.city ?? '—')}
+          value={activeSchools}
+          sublabel={`${utilizacion}% del total`}
           icon={Building2}
           iconTone="accent"
         />
         <MetricCard
           label="Alumnos"
           value={totalStudents.toLocaleString()}
-          sublabel={selectedId === 'all' ? `en ${filteredSchools.length} ${filteredSchools.length === 1 ? 'escuela' : 'escuelas'}` : 'En esta escuela'}
+          sublabel={`en ${filteredSchools.length} ${filteredSchools.length === 1 ? 'escuela' : 'escuelas'}`}
           icon={Users}
           iconTone="neutral"
         />
@@ -346,112 +363,110 @@ export default function DashboardClient({ metrics: m, schools, firstName }: Prop
         />
       </div>
 
-      {/* Charts — global view only */}
-      {selectedId === 'all' && (
-        <div className="grid lg:grid-cols-3 gap-4 items-stretch">
-          {/* Nuevas escuelas — 2/3 width */}
-          <div className="lg:col-span-2 xk-surface-elevated p-5 flex flex-col">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h2 className="text-sm font-semibold text-xk-text">Nuevas escuelas</h2>
-                <p className="text-xs text-xk-text-muted mt-0.5">
-                  {chartPeriod === 12 ? 'Últimos 12 meses' : chartPeriod === 6 ? 'Últimos 6 meses' : 'Últimos 3 meses'}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="xk-num text-2xl font-semibold text-xk-text">{m.totalSchools}</span>
-                {/* Period selector */}
-                <div className="flex rounded-lg border border-xk-border overflow-hidden text-[11px] font-medium">
-                  {([3, 6, 12] as const).map(p => (
-                    <button
-                      key={p}
-                      onClick={() => setChartPeriod(p)}
-                      className={[
-                        'px-2.5 py-1 transition-colors',
-                        chartPeriod === p
-                          ? 'bg-xk-accent text-white'
-                          : 'text-xk-text-muted hover:bg-xk-subtle',
-                      ].join(' ')}
-                    >
-                      {p}m
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-            <div className="flex-1 min-h-[240px] w-full">
-              <MetricsChart data={chartData} />
-            </div>
-          </div>
+      {/* Donut charts */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <DonutChart
+          title="Escuelas por Estatus"
+          data={estatusData}
+          total={filteredSchools.length}
+          activeFilter={donutFilter}
+          onFilter={handleDonutFilter}
+        />
+        <DonutChart
+          title="Escuelas por Plan"
+          data={planData}
+          total={filteredSchools.length}
+          activeFilter={donutFilter}
+          onFilter={handleDonutFilter}
+        />
+      </div>
 
-          {/* Right column: two donut charts stacked */}
-          <div className="flex flex-col gap-4">
-            <DonutChart
-              title="Escuelas por Estatus"
-              data={estatusData}
-              total={filteredSchools.length}
-              activeFilter={donutFilter}
-              onFilter={handleDonutFilter}
-            />
-            <DonutChart
-              title="Escuelas por Plan"
-              data={planData}
-              total={filteredSchools.length}
-              activeFilter={donutFilter}
-              onFilter={handleDonutFilter}
-            />
+      {/* MRR Timeline — full width */}
+      <div className="xk-surface-elevated p-5">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-sm font-semibold text-xk-text">MRR por Plan</h2>
+            <p className="text-xs text-xk-text-muted mt-0.5">Crecimiento acumulado</p>
+          </div>
+          <div className="flex rounded-lg border border-xk-border overflow-hidden text-[11px] font-medium">
+            {([3, 6, 12] as const).map(p => (
+              <button
+                key={p}
+                onClick={() => setChartPeriod(p)}
+                className={[
+                  'px-2.5 py-1 transition-colors',
+                  chartPeriod === p ? 'bg-xk-accent text-white' : 'text-xk-text-muted hover:bg-xk-subtle',
+                ].join(' ')}
+              >
+                {p}m
+              </button>
+            ))}
           </div>
         </div>
-      )}
-
-      {/* School detail panel */}
-      {selected && (
-        <div className="xk-surface-elevated p-5">
-          <h2 className="text-sm font-semibold text-xk-text mb-4">Detalles — {selected.name}</h2>
-          <div className="grid sm:grid-cols-2 gap-4 text-sm">
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-xk-text-muted text-xs">Plan</span>
-                <span className="text-xk-text font-medium">{selected.plan}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-xk-text-muted text-xs">Ciudad</span>
-                <span className="text-xk-text">{selected.city ?? '—'}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-xk-text-muted text-xs">Email</span>
-                <span className="text-xk-text text-xs">{selected.director_email ?? '—'}</span>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-xk-text-muted text-xs">Alumnos</span>
-                <span className="xk-num font-semibold text-xk-text">{selected.student_count}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-xk-text-muted text-xs">MRR</span>
-                <span className="xk-num font-semibold text-emerald-700">
-                  {selected.mrr_usd > 0 ? fmtUsd(selected.mrr_usd) : '—'}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-xk-text-muted text-xs">Registrada</span>
-                <span className="text-xk-text">{fmtDate(selected.created_at)}</span>
-              </div>
-            </div>
-          </div>
-          <Link
-            href={`/sysadmin/schools/${selected.id}`}
-            className="mt-4 inline-flex items-center gap-1.5 text-xs text-xk-accent hover:text-xk-accent-dark font-medium"
-          >
-            Ver detalle completo <ArrowRight className="w-3 h-3" />
-          </Link>
+        <div className="h-[200px] w-full">
+          <MrrChart data={mrrByMonth} />
         </div>
-      )}
+      </div>
 
-      {/* Últimas escuelas — global view only */}
-      {selectedId === 'all' && (
-        <div className="xk-surface-elevated overflow-hidden w-full">
+      {/* Nuevas escuelas (2/3) + Región (1/3) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch">
+        <div className="lg:col-span-2 xk-surface-elevated p-5 flex flex-col">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-sm font-semibold text-xk-text">Nuevas escuelas</h2>
+              <p className="text-xs text-xk-text-muted mt-0.5">
+                {chartPeriod === 12 ? 'Últimos 12 meses' : chartPeriod === 6 ? 'Últimos 6 meses' : 'Últimos 3 meses'}
+              </p>
+            </div>
+            <span className="xk-num text-2xl font-semibold text-xk-text">{m.totalSchools}</span>
+          </div>
+          <div className="flex-1 min-h-[200px] w-full">
+            <MetricsChart data={filteredSchoolsByMonth} />
+          </div>
+        </div>
+        <div className="xk-surface-elevated p-5 flex flex-col">
+          <h2 className="text-sm font-semibold text-xk-text mb-4">Por región</h2>
+          {regionData.length > 0 ? (
+            <div className="flex-1 min-h-[200px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  layout="vertical"
+                  data={regionData}
+                  margin={{ top: 0, right: 16, left: 0, bottom: 0 }}
+                >
+                  <XAxis
+                    type="number"
+                    allowDecimals={false}
+                    tick={{ fontSize: 11, fill: '#A8A49E' }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    width={80}
+                    tick={{ fontSize: 11, fill: '#57534E' }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <Tooltip
+                    contentStyle={TOOLTIP_STYLE}
+                    formatter={(value) => [value, 'Escuelas']}
+                  />
+                  <Bar dataKey="value" fill="#6D4AE8" radius={[0, 4, 4, 0]} maxBarSize={20} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="flex-1 flex items-center justify-center text-xs text-xk-text-muted min-h-[200px]">
+              Sin datos aún.
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Últimas escuelas */}
+      <div className="xk-surface-elevated overflow-hidden w-full">
           <div className="flex items-center justify-between px-5 py-4 border-b border-xk-border/50 flex-wrap gap-3">
             <div className="flex items-center gap-3">
               <h2 className="text-sm font-semibold text-xk-text">Últimas escuelas</h2>
@@ -465,23 +480,12 @@ export default function DashboardClient({ metrics: m, schools, firstName }: Prop
                 </button>
               )}
             </div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-xk-text-muted pointer-events-none" />
-                <input
-                  type="text"
-                  placeholder="Buscar por nombre…"
-                  onChange={e => handleSearch(e.target.value)}
-                  className="h-8 pl-8 pr-3 rounded-lg border border-xk-border bg-xk-surface text-xs text-xk-text placeholder:text-xk-text-muted focus:outline-none focus:ring-2 focus:ring-xk-accent/20 focus:border-xk-accent transition-colors w-44"
-                />
-              </div>
-              <Link
-                href="/sysadmin/schools"
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-xk-accent/30 text-xs font-medium text-xk-accent hover:bg-xk-accent-light transition-colors whitespace-nowrap"
-              >
-                Ver todas <ArrowRight className="w-3 h-3" />
-              </Link>
-            </div>
+            <Link
+              href="/sysadmin/schools"
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-xk-accent/30 text-xs font-medium text-xk-accent hover:bg-xk-accent-light transition-colors whitespace-nowrap"
+            >
+              Ver todas <ArrowRight className="w-3 h-3" />
+            </Link>
           </div>
           {visibleSchools.length > 0 ? (
             <div className="divide-y divide-xk-border/40">
@@ -545,7 +549,6 @@ export default function DashboardClient({ metrics: m, schools, firstName }: Prop
             </div>
           )}
         </div>
-      )}
 
       {/* Empty state */}
       {m.totalSchools === 0 && (
