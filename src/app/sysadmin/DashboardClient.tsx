@@ -186,11 +186,10 @@ export default function DashboardClient({ metrics: m, schools, firstName }: Prop
   }
 
   const estatusData = useMemo(() => [
-    { name: 'Activas',     value: filteredSchools.filter(s => s.status === 'active' && s.plan !== 'trial').length, color: '#059669' },
-    { name: 'Trial',       value: filteredSchools.filter(s => s.plan === 'trial').length,                           color: '#6D4AE8' },
-    { name: 'Onboarding',  value: filteredSchools.filter(s => s.status === 'onboarding').length,                    color: '#D97706' },
-    { name: 'Por aprobar', value: filteredSchools.filter(s => s.status === 'pending').length,                       color: '#DC2626' },
-    { name: 'Pausadas',    value: filteredSchools.filter(s => s.status === 'paused').length,                        color: '#A8A49E' },
+    { name: 'Activas',     value: filteredSchools.filter(s => s.status === 'active').length,     color: '#059669' },
+    { name: 'Por aprobar', value: filteredSchools.filter(s => s.status === 'pending').length,    color: '#DC2626' },
+    { name: 'Onboarding',  value: filteredSchools.filter(s => s.status === 'onboarding').length, color: '#D97706' },
+    { name: 'Pausadas',    value: filteredSchools.filter(s => s.status === 'paused').length,     color: '#A8A49E' },
   ].filter(d => d.value > 0), [filteredSchools])
 
   const planData = useMemo(() => [
