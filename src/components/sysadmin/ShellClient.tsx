@@ -56,10 +56,22 @@ export default function ShellClient({ userName, userEmail, avatarUrl, initials, 
     {
       title: 'Cuenta',
       items: [
-        { label: 'Mi cuenta', href: '/dashboard/perfil', icon: User },
+        { label: 'Mi cuenta', href: '/sysadmin/perfil', icon: User },
       ],
     },
   ], [pendingSchools])
+
+  const mobileSections = useMemo(() =>
+    sidebarSections.map(section => ({
+      title: section.title,
+      items: section.items.map(item => ({
+        label:      item.label,
+        href:       item.href,
+        icon:       <item.icon className="w-[18px] h-[18px]" />,
+        comingSoon: item.comingSoon,
+      })),
+    }))
+  , [sidebarSections])
 
   useEffect(() => {
     function handler(e: KeyboardEvent) {
@@ -85,7 +97,7 @@ export default function ShellClient({ userName, userEmail, avatarUrl, initials, 
       />
 
       <div className="flex-1 flex flex-col min-w-0">
-        <Topbar items={MOBILE_NAV_ITEMS} onOpenCommand={() => setCmdOpen(true)} />
+        <Topbar items={[]} sections={mobileSections} schoolName="Admin global" onOpenCommand={() => setCmdOpen(true)} />
         <main className="flex-1 overflow-y-auto xk-scroll">
           <div className="max-w-[1600px] mx-auto w-full px-4 lg:px-6 py-6 lg:py-8">
             {children}

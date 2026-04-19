@@ -24,7 +24,7 @@ export type SidebarSection = {
 export const SYSADMIN_ITEMS: SidebarItem[] = [
   { label: 'Dashboard',  href: '/sysadmin',         icon: LayoutDashboard },
   { label: 'Escuelas',   href: '/sysadmin/schools', icon: Building2 },
-  { label: 'Mi cuenta',  href: '/dashboard/perfil', icon: User },
+  { label: 'Mi cuenta',  href: '/sysadmin/perfil',  icon: User },
 ]
 
 type Props = {
@@ -175,7 +175,7 @@ export default function Sidebar({ userName, userEmail, avatarUrl, initials, item
       {/* User chip */}
       <div className="p-2.5 border-t border-xk-border/60">
         <Link
-          href="/dashboard/perfil"
+          href="/sysadmin/perfil"
           className={cn(
             'flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-xk-subtle transition-colors group',
             collapsed && 'justify-center px-0',
