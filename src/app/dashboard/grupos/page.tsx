@@ -1,12 +1,12 @@
-import { listGroups } from '@/app/actions/groups'
-import GruposClient   from './GruposClient'
+import { listGroups, listTeachersForSchool } from '@/app/actions/groups'
+import GruposClient from './GruposClient'
 
 export default async function GruposPage() {
-  const groups = await listGroups()
+  const [groups, teachers] = await Promise.all([listGroups(), listTeachersForSchool()])
 
   return (
     <div className="max-w-5xl mx-auto">
-      <GruposClient groups={groups} />
+      <GruposClient groups={groups} teachers={teachers} />
     </div>
   )
 }
