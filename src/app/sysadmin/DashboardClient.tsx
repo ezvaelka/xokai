@@ -133,15 +133,18 @@ function fmtUsd(n: number) {
 }
 
 export default function DashboardClient({ metrics: m, schools, firstName }: Props) {
+  const [schoolFilter, setSchoolFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [regionFilter, setRegionFilter] = useState('')
   const [planFilter, setPlanFilter]     = useState('')
-  const [chartPeriod, setChartPeriod]   = useState<3 | 6 | 12>(12)
+  const [mrrPeriod, setMrrPeriod]         = useState<3 | 6 | 12>(12)
+  const [schoolsPeriod, setSchoolsPeriod] = useState<3 | 6 | 12>(6)
   const [donutFilter, setDonutFilter]   = useState<string | null>(null)
 
-  const anyFilterActive = !!statusFilter || !!regionFilter || !!planFilter
+  const anyFilterActive = !!schoolFilter || !!statusFilter || !!regionFilter || !!planFilter
 
   function clearFilters() {
+    setSchoolFilter('')
     setStatusFilter('')
     setRegionFilter('')
     setPlanFilter('')
@@ -154,10 +157,11 @@ export default function DashboardClient({ metrics: m, schools, firstName }: Prop
   // Schools filtered by header filters (región + plan) — afectan TODAS las métricas
   const filteredSchools = useMemo(() =>
     schools.filter(s =>
+      (!schoolFilter || s.id === schoolFilter) &&
       (!statusFilter || s.status === statusFilter) &&
       (!regionFilter || s.state === regionFilter || s.city === regionFilter) &&
       (!planFilter   || s.plan === planFilter)
-    ), [schools, statusFilter, regionFilter, planFilter])
+    ), [schools, schoolFilter, statusFilter, regionFilter, planFilter])
 
   const visibleSchools = useMemo(() =>
     filteredSchools.filter(s => {
@@ -183,8 +187,8 @@ export default function DashboardClient({ metrics: m, schools, firstName }: Prop
       const k = s.created_at.slice(0, 7)
       counts[k] = (counts[k] ?? 0) + 1
     })
-    return months.map(mo => ({ month: mo.month, count: counts[mo.isoKey] ?? 0 })).slice(-chartPeriod)
-  }, [filteredSchools, chartPeriod])
+    return months.map(mo => ({ month: mo.month, count: counts[mo.isoKey] ?? 0 })).slice(-schoolsPeriod)
+  }, [filteredSchools, schoolsPeriod])
 
   const mrrByMonth = useMemo(() => {
     const now = new Date()
@@ -198,8 +202,8 @@ export default function DashboardClient({ metrics: m, schools, firstName }: Prop
         base:        active.filter(s => s.plan === 'base').reduce((sum, s) => sum + (s.mrr_usd ?? 0), 0),
         base_pickup: active.filter(s => s.plan === 'base_pickup').reduce((sum, s) => sum + (s.mrr_usd ?? 0), 0),
       }
-    }).slice(-chartPeriod)
-  }, [filteredSchools, chartPeriod])
+    }).slice(-mrrPeriod)
+  }, [filteredSchools, mrrPeriod])
 
   const regionData = useMemo(() => {
     const counts: Record<string, number> = {}
@@ -243,6 +247,19 @@ export default function DashboardClient({ metrics: m, schools, firstName }: Prop
         </h1>
         {/* Filters — single scroll row on mobile */}
         <div className="flex items-center gap-2 overflow-x-auto pb-0.5 -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap">
+          <div className="relative shrink-0">
+            <select
+              value={schoolFilter}
+              onChange={e => setSchoolFilter(e.target.value)}
+              className={['appearance-none h-8 pl-3 pr-7 rounded-lg border bg-xk-surface text-xs cursor-pointer focus:outline-none focus:ring-2 focus:ring-xk-accent/20 transition-colors',
+                schoolFilter ? 'border-xk-accent text-xk-accent font-medium' : 'border-xk-border text-xk-text hover:border-xk-border-strong',
+              ].join(' ')}
+            >
+              <option value="">Escuela</option>
+              {schools.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-xk-text-muted pointer-events-none" />
+          </div>
           <div className="relative shrink-0">
             <select
               value={regionFilter}
@@ -363,6 +380,24 @@ export default function DashboardClient({ metrics: m, schools, firstName }: Prop
         />
       </div>
 
+      {/* Banner escuela seleccionada */}
+      {schoolFilter && (() => {
+        const s = schools.find(sc => sc.id === schoolFilter)
+        return s ? (
+          <Link
+            href={`/sysadmin/schools/${schoolFilter}`}
+            className="flex items-center gap-3 px-4 py-3 rounded-xl bg-xk-accent-light border border-xk-accent/20 hover:bg-xk-accent/10 transition-colors group"
+          >
+            <Building2 className="w-4 h-4 text-xk-accent shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-xk-accent">{s.name}</p>
+              <p className="text-xs text-xk-text-muted">{s.state ?? s.city ?? '—'} · Ver detalle completo</p>
+            </div>
+            <ArrowRight className="w-4 h-4 text-xk-accent opacity-0 group-hover:opacity-100 transition-opacity" />
+          </Link>
+        ) : null
+      })()}
+
       {/* Donut charts */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <DonutChart
@@ -392,10 +427,10 @@ export default function DashboardClient({ metrics: m, schools, firstName }: Prop
             {([3, 6, 12] as const).map(p => (
               <button
                 key={p}
-                onClick={() => setChartPeriod(p)}
+                onClick={() => setMrrPeriod(p)}
                 className={[
                   'px-2.5 py-1 transition-colors',
-                  chartPeriod === p ? 'bg-xk-accent text-white' : 'text-xk-text-muted hover:bg-xk-subtle',
+                  mrrPeriod === p ? 'bg-xk-accent text-white' : 'text-xk-text-muted hover:bg-xk-subtle',
                 ].join(' ')}
               >
                 {p}m
@@ -415,10 +450,26 @@ export default function DashboardClient({ metrics: m, schools, firstName }: Prop
             <div>
               <h2 className="text-sm font-semibold text-xk-text">Nuevas escuelas</h2>
               <p className="text-xs text-xk-text-muted mt-0.5">
-                {chartPeriod === 12 ? 'Últimos 12 meses' : chartPeriod === 6 ? 'Últimos 6 meses' : 'Últimos 3 meses'}
+                {schoolsPeriod === 12 ? 'Últimos 12 meses' : schoolsPeriod === 6 ? 'Últimos 6 meses' : 'Últimos 3 meses'}
               </p>
             </div>
-            <span className="xk-num text-2xl font-semibold text-xk-text">{m.totalSchools}</span>
+            <div className="flex items-center gap-3">
+              <div className="flex rounded-lg border border-xk-border overflow-hidden text-[11px] font-medium">
+                {([3, 6, 12] as const).map(p => (
+                  <button
+                    key={p}
+                    onClick={() => setSchoolsPeriod(p)}
+                    className={[
+                      'px-2.5 py-1 transition-colors',
+                      schoolsPeriod === p ? 'bg-xk-accent text-white' : 'text-xk-text-muted hover:bg-xk-subtle',
+                    ].join(' ')}
+                  >
+                    {p}m
+                  </button>
+                ))}
+              </div>
+              <span className="xk-num text-2xl font-semibold text-xk-text">{m.totalSchools}</span>
+            </div>
           </div>
           <div className="flex-1 min-h-[200px] w-full">
             <MetricsChart data={filteredSchoolsByMonth} />

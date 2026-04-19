@@ -72,6 +72,8 @@ export type SchoolDetail = {
     created_at:            string
   }
   status:       ClassifyStatus
+  plan:         SchoolPlan
+  mrr_usd:      number
   users:        Array<{ id: string; email: string | null; first_name: string | null; last_name: string | null; role: string }>
   studentCount: number
   groupCount:   number
@@ -225,11 +227,15 @@ export async function getSchoolDetail(schoolId: string): Promise<SchoolDetail> {
     .select('id', { count: 'exact', head: true })
     .eq('school_id', schoolId)
 
+  const plan = (school.plan ?? 'trial') as SchoolPlan
+  const sc   = studentCount ?? 0
   return {
     school,
     status:       classify(school),
+    plan,
+    mrr_usd:      sc * (PLAN_RATE_USD[plan] ?? 0),
     users,
-    studentCount: studentCount ?? 0,
+    studentCount: sc,
     groupCount:   groupCount ?? 0,
   }
 }
