@@ -15,9 +15,12 @@ export default function MetricsChart({ data }: Props) {
     )
   }
 
+  const maxCount = Math.max(...data.map(d => d.count), 1)
+  const yMax = Math.ceil(maxCount * 1.2)
+
   return (
-    <ResponsiveContainer width="100%" height={200}>
-      <BarChart data={data} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+    <ResponsiveContainer width="100%" height="100%" minHeight={200}>
+      <BarChart data={data} margin={{ top: 8, right: 4, left: -20, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#E2DFD8" vertical={false} />
         <XAxis
           dataKey="month"
@@ -27,6 +30,7 @@ export default function MetricsChart({ data }: Props) {
         />
         <YAxis
           allowDecimals={false}
+          domain={[0, yMax]}
           tick={{ fontSize: 11, fill: '#A8A49E' }}
           axisLine={false}
           tickLine={false}
@@ -36,7 +40,7 @@ export default function MetricsChart({ data }: Props) {
             background: '#fff',
             border: '1px solid #E2DFD8',
             borderRadius: 8,
-            fontSize: 12,
+            fontSize: 13,
             boxShadow: '0 4px 6px -1px rgba(0,0,0,0.08)',
           }}
           cursor={{ fill: '#EDE9FE', opacity: 0.5 }}

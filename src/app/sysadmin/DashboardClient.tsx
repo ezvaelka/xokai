@@ -366,7 +366,7 @@ export default function DashboardClient({ metrics: m, schools, firstName }: Prop
                 </div>
               </div>
             </div>
-            <div className="flex-1">
+            <div className="flex-1 min-h-[240px] w-full">
               <MetricsChart data={chartData} />
             </div>
           </div>
