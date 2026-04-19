@@ -22,13 +22,63 @@ const STATUS_TONE = {
   pending:    { tone: 'danger'  as const, label: 'Por aprobar' },
 }
 
-const DONUT_DATA = (m: SysadminMetrics) => [
+const ESTATUS_DATA = (m: SysadminMetrics) => [
   { name: 'Activas',     value: m.activeSchools,     color: '#059669' },
-  { name: 'Trial',       value: m.totalSchools - m.activeSchools - m.onboardingSchools - m.pendingSchools - m.pausedSchools, color: '#6D4AE8' },
   { name: 'Onboarding',  value: m.onboardingSchools, color: '#D97706' },
   { name: 'Por aprobar', value: m.pendingSchools,     color: '#DC2626' },
   { name: 'Pausadas',    value: m.pausedSchools,      color: '#A8A49E' },
 ].filter(d => d.value > 0)
+
+const TOOLTIP_STYLE = {
+  background: '#fff', border: '1px solid #ECEAE3',
+  borderRadius: 8, fontSize: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.08)',
+}
+
+function DonutChart({ title, data, total }: {
+  title: string
+  data: { name: string; value: number; color: string }[]
+  total: number
+}) {
+  return (
+    <div className="xk-surface-elevated p-4 flex flex-col flex-1">
+      <h2 className="text-sm font-semibold text-xk-text mb-3">{title}</h2>
+      {data.length > 0 ? (
+        <>
+          <div className="h-[120px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={data} cx="50%" cy="50%" innerRadius="50%" outerRadius="78%"
+                  paddingAngle={2} dataKey="value">
+                  {data.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                </Pie>
+                <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(value, name) => [value, name]} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="space-y-1.5 pt-2 border-t border-xk-border/40 mt-2">
+            {data.map(d => {
+              const pct = total > 0 ? Math.round((d.value / total) * 100) : 0
+              return (
+                <div key={d.name} className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: d.color }} />
+                    <span className="text-xk-text-secondary">{d.name}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="xk-num font-semibold text-xk-text">{d.value}</span>
+                    <span className="xk-num w-7 text-right text-xk-text-muted">{pct}%</span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </>
+      ) : (
+        <div className="flex-1 flex items-center justify-center text-xs text-xk-text-muted">Sin datos aún.</div>
+      )}
+    </div>
+  )
+}
 
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })
@@ -71,7 +121,14 @@ export default function DashboardClient({ metrics: m, schools }: Props) {
     searchDebounce.current = setTimeout(() => setSearch(v), 300)
   }
 
-  const donutData = useMemo(() => DONUT_DATA(m), [m])
+  const estatusData = useMemo(() => ESTATUS_DATA(m), [m])
+  const planData    = useMemo(() => [
+    { name: 'Trial',        value: schools.filter(s => s.plan === 'trial').length,       color: '#6D4AE8' },
+    { name: 'Base',         value: schools.filter(s => s.plan === 'base').length,        color: '#059669' },
+    { name: 'Base+Pickup',  value: schools.filter(s => s.plan === 'base_pickup').length, color: '#0EA5E9' },
+    { name: 'Suspendida',   value: schools.filter(s => s.plan === 'suspended').length,   color: '#D97706' },
+    { name: 'Churned',      value: schools.filter(s => s.plan === 'churned').length,     color: '#A8A49E' },
+  ].filter(d => d.value > 0), [schools])
 
   return (
     <div className="space-y-8">
@@ -206,67 +263,10 @@ export default function DashboardClient({ metrics: m, schools }: Props) {
             </div>
           </div>
 
-          {/* Distribución — donut chart */}
-          <div className="xk-surface-elevated p-5 flex flex-col">
-            <h2 className="text-sm font-semibold text-xk-text mb-4">Distribución</h2>
-            {donutData.length > 0 ? (
-              <>
-                <div className="flex-1 min-h-[160px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={donutData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius="55%"
-                        outerRadius="80%"
-                        paddingAngle={2}
-                        dataKey="value"
-                      >
-                        {donutData.map((entry, i) => (
-                          <Cell key={i} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        contentStyle={{
-                          background: '#fff',
-                          border: '1px solid #ECEAE3',
-                          borderRadius: 8,
-                          fontSize: 12,
-                          boxShadow: '0 4px 6px -1px rgba(0,0,0,0.08)',
-                        }}
-                        formatter={(value, name) => [value, name]}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-                <div className="space-y-2 pt-3 border-t border-xk-border/50 mt-2">
-                  {donutData.map(d => {
-                    const pct = m.totalSchools > 0 ? Math.round((d.value / m.totalSchools) * 100) : 0
-                    return (
-                      <div key={d.name} className="flex items-center justify-between text-xs">
-                        <div className="flex items-center gap-1.5">
-                          <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: d.color }} />
-                          <span className="text-xk-text-secondary">{d.name}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-xk-text-muted">
-                          <span className="xk-num font-semibold text-xk-text">{d.value}</span>
-                          <span className="xk-num w-8 text-right">{pct}%</span>
-                        </div>
-                      </div>
-                    )
-                  })}
-                  <div className="pt-1.5 border-t border-xk-border/30 flex items-center justify-between text-xs">
-                    <span className="text-xk-text-muted">Total</span>
-                    <span className="xk-num font-bold text-xk-text">{m.totalSchools}</span>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div className="flex-1 flex items-center justify-center text-sm text-xk-text-muted">
-                Sin datos aún.
-              </div>
-            )}
+          {/* Right column: two donut charts stacked */}
+          <div className="flex flex-col gap-4">
+            <DonutChart title="Escuelas por Estatus" data={estatusData} total={m.totalSchools} />
+            <DonutChart title="Escuelas por Plan"    data={planData}    total={m.totalSchools} />
           </div>
         </div>
       )}
