@@ -1,8 +1,9 @@
 'use server'
 
-import { revalidatePath }    from 'next/cache'
-import { createClient }      from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { revalidatePath }     from 'next/cache'
+import { createClient }       from '@/lib/supabase/server'
+import { createAdminClient }  from '@/lib/supabase/admin'
+import { requireSchoolAdmin } from '@/lib/auth'
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -18,28 +19,6 @@ export type InviteParentInput = {
   first_name: string
   last_name:  string
   email:      string
-}
-
-// ─── Helper interno ───────────────────────────────────────────────────────────
-
-async function requireSchoolAdmin(): Promise<{ userId: string; schoolId: string }> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('No autenticado')
-
-  const { data: profile, error } = await supabase
-    .from('user_profiles')
-    .select('school_id, role')
-    .eq('id', user.id)
-    .single()
-
-  if (error || !profile) throw new Error('Perfil no encontrado')
-  if (!['admin', 'director'].includes(profile.role)) {
-    throw new Error('Acceso denegado: requiere rol admin o director')
-  }
-  if (!profile.school_id) throw new Error('Usuario sin escuela asignada')
-
-  return { userId: user.id, schoolId: profile.school_id }
 }
 
 // ─── listParents ──────────────────────────────────────────────────────────────
