@@ -24,19 +24,6 @@ interface ShellProps {
   activeHref?: string
 }
 
-interface SchoolRow {
-  name:   string
-  active: boolean
-}
-
-interface ProfileRow {
-  first_name: string | null
-  last_name:  string | null
-  avatar_url: string | null
-  role:       string
-  schools:    SchoolRow | null
-}
-
 interface ImpersonatingData {
   schoolId:   string
   schoolName: string
@@ -116,16 +103,35 @@ export default async function DashboardShell({ children }: ShellProps) {
 
   const { data: profile } = await supabase
     .from('user_profiles')
-    .select('first_name, last_name, avatar_url, role, schools(name, active)')
+    .select('first_name, last_name, avatar_url, role, school_id')
     .eq('id', user.id)
-    .single() as { data: ProfileRow | null }
+    .single()
 
-  const role        = profile?.role ?? 'admin'
-  const schoolActive = profile?.schools?.active ?? true
-  const userEmail   = user.email ?? ''
-  const fullName    = [profile?.first_name, profile?.last_name].filter(Boolean).join(' ') || userEmail
-  const initials    = (profile?.first_name?.[0] ?? userEmail[0] ?? 'U').toUpperCase()
-  const avatarUrl   = profile?.avatar_url ?? null
+  const profileData = profile as {
+    first_name: string | null
+    last_name:  string | null
+    avatar_url: string | null
+    role:       string
+    school_id:  string | null
+  } | null
+
+  const role      = profileData?.role ?? 'admin'
+  const userEmail = user.email ?? ''
+  const fullName  = [profileData?.first_name, profileData?.last_name].filter(Boolean).join(' ') || userEmail
+  const initials  = (profileData?.first_name?.[0] ?? userEmail[0] ?? 'U').toUpperCase()
+  const avatarUrl = profileData?.avatar_url ?? null
+
+  let schoolName   = 'Mi Escuela'
+  let schoolActive = true
+  if (profileData?.school_id) {
+    const { data: school } = await supabase
+      .from('schools')
+      .select('name, active')
+      .eq('id', profileData.school_id)
+      .single()
+    schoolName   = (school as { name: string; active: boolean } | null)?.name   ?? 'Mi Escuela'
+    schoolActive = (school as { name: string; active: boolean } | null)?.active ?? true
+  }
 
   // Leer cookie de impersonación
   const cookieStore = await cookies()
@@ -139,8 +145,8 @@ export default async function DashboardShell({ children }: ShellProps) {
     }
   }
 
-  // Nombre de escuela: si está impersonando, usar el de la cookie
-  const schoolName = impersonating?.schoolName ?? profile?.schools?.name ?? 'Mi Escuela'
+  // Nombre de escuela: impersonación tiene prioridad
+  if (impersonating?.schoolName) schoolName = impersonating.schoolName
 
   // Nav filtrado por rol
   const visibleNav: SidebarItem[] = NAV_ITEMS

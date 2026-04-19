@@ -1,10 +1,10 @@
 'use client'
 
 import { useEffect, useState, useMemo } from 'react'
-import Sidebar, { SYSADMIN_ITEMS, type SidebarItem } from './Sidebar'
+import Sidebar, { type SidebarSection } from './Sidebar'
 import Topbar from './Topbar'
 import CommandPalette from './CommandPalette'
-import { Building2, LayoutDashboard, User } from 'lucide-react'
+import { Building2, LayoutDashboard, User, Users, DollarSign, Settings } from 'lucide-react'
 
 type Props = {
   userName:  string
@@ -37,11 +37,29 @@ const MOBILE_NAV_ITEMS = [
 export default function ShellClient({ userName, userEmail, avatarUrl, initials, pendingSchools = 0, children }: Props) {
   const [cmdOpen, setCmdOpen] = useState(false)
 
-  const sidebarItems = useMemo<SidebarItem[]>(() => SYSADMIN_ITEMS.map(item =>
-    item.href === '/sysadmin/schools' && pendingSchools > 0
-      ? { ...item, badge: pendingSchools, badgeTone: 'danger' as const }
-      : item
-  ), [pendingSchools])
+  const sidebarSections = useMemo<SidebarSection[]>(() => [
+    {
+      title: 'Plataforma',
+      items: [
+        { label: 'Dashboard', href: '/sysadmin',         icon: LayoutDashboard },
+        {
+          label:    'Escuelas',
+          href:     '/sysadmin/schools',
+          icon:     Building2,
+          ...(pendingSchools > 0 ? { badge: pendingSchools, badgeTone: 'danger' as const } : {}),
+        },
+        { label: 'Usuarios', href: '#', icon: Users,      comingSoon: true },
+        { label: 'Revenue',  href: '#', icon: DollarSign, comingSoon: true },
+        { label: 'Sistema',  href: '#', icon: Settings,   comingSoon: true },
+      ],
+    },
+    {
+      title: 'Cuenta',
+      items: [
+        { label: 'Mi cuenta', href: '/dashboard/perfil', icon: User },
+      ],
+    },
+  ], [pendingSchools])
 
   useEffect(() => {
     function handler(e: KeyboardEvent) {
@@ -63,7 +81,7 @@ export default function ShellClient({ userName, userEmail, avatarUrl, initials, 
         userEmail={userEmail}
         avatarUrl={avatarUrl}
         initials={initials}
-        items={sidebarItems}
+        sections={sidebarSections}
       />
 
       <div className="flex-1 flex flex-col min-w-0">
