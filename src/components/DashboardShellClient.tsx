@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import {
   LayoutDashboard, Users, FolderOpen, MessageSquare,
   CreditCard, FileText, Radio, UserPlus, Settings, User,
+  GraduationCap, UsersRound,
   type LucideIcon,
 } from 'lucide-react'
 import Sidebar from './sysadmin/Sidebar'
@@ -18,6 +19,8 @@ const ALL_NAV: (SidebarItem & { roles: readonly string[] })[] = [
   { label: 'Dashboard',     href: '/dashboard',                        icon: LayoutDashboard, roles: ['admin', 'director', 'sysadmin', 'coordinador', 'finanzas'] },
   { label: 'Alumnos',       href: '/dashboard/alumnos',                icon: Users,           roles: ['admin', 'director', 'sysadmin', 'coordinador'] },
   { label: 'Grupos',        href: '/dashboard/grupos',                 icon: FolderOpen,      roles: ['admin', 'director', 'sysadmin', 'coordinador', 'maestro', 'teacher'] },
+  { label: 'Maestros',      href: '/dashboard/maestros',               icon: GraduationCap,   roles: ['admin', 'director', 'sysadmin', 'coordinador'] },
+  { label: 'Padres',        href: '/dashboard/padres',                 icon: UsersRound,      roles: ['admin', 'director', 'sysadmin', 'coordinador'] },
   { label: 'Comunicados',   href: '/dashboard/comunicados',            icon: MessageSquare,   roles: ['admin', 'director', 'sysadmin', 'coordinador', 'maestro', 'teacher'] },
   { label: 'Pagos',         href: '/dashboard/pagos',                  icon: CreditCard,      roles: ['admin', 'director', 'sysadmin', 'finanzas'] },
   { label: 'Documentos',    href: '/dashboard/documentos',             icon: FileText,        roles: ['admin', 'director', 'sysadmin'] },
