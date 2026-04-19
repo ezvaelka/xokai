@@ -235,7 +235,7 @@ export default function DashboardClient({ metrics: m, schools }: Props) {
                           fontSize: 12,
                           boxShadow: '0 4px 6px -1px rgba(0,0,0,0.08)',
                         }}
-                        formatter={(value: number, name: string) => [value, name]}
+                        formatter={(value, name) => [value, name]}
                       />
                     </PieChart>
                   </ResponsiveContainer>
