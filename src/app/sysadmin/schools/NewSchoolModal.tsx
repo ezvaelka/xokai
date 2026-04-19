@@ -13,24 +13,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { createSchoolWithAdmin } from '@/app/actions/sysadmin'
-
-const MX_STATES = [
-  'Aguascalientes', 'Baja California', 'Baja California Sur', 'Campeche',
-  'Chiapas', 'Chihuahua', 'Ciudad de México', 'Coahuila', 'Colima',
-  'Durango', 'Estado de México', 'Guanajuato', 'Guerrero', 'Hidalgo',
-  'Jalisco', 'Michoacán', 'Morelos', 'Nayarit', 'Nuevo León', 'Oaxaca',
-  'Puebla', 'Querétaro', 'Quintana Roo', 'San Luis Potosí', 'Sinaloa',
-  'Sonora', 'Tabasco', 'Tamaulipas', 'Tlaxcala', 'Veracruz', 'Yucatán',
-  'Zacatecas',
-]
-
-const LATAM_COUNTRIES = [
-  { flag: '🇦🇷', name: 'Argentina' },
-  { flag: '🇧🇷', name: 'Brasil' },
-  { flag: '🇨🇱', name: 'Chile' },
-  { flag: '🇨🇴', name: 'Colombia' },
-  { flag: '🇵🇪', name: 'Perú' },
-]
+import { MX_STATES, LATAM_COUNTRIES } from '@/lib/school-locations'
 
 const FIELD_CLASS =
   'w-full rounded-xl border border-xk-border bg-xk-bg px-3 py-2.5 text-sm text-xk-text placeholder:text-xk-text-muted focus:outline-none focus:ring-2 focus:ring-xk-accent focus:border-transparent'

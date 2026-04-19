@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import type { SchoolStatus } from '@/app/actions/sysadmin'
+import { MX_STATES, LATAM_COUNTRIES } from '@/lib/school-locations'
 
 const TABS: Array<{ key: SchoolStatus; label: string }> = [
   { key: 'all',        label: 'Todas' },
@@ -11,24 +12,6 @@ const TABS: Array<{ key: SchoolStatus; label: string }> = [
   { key: 'onboarding', label: 'Onboarding' },
   { key: 'paused',     label: 'Pausadas' },
   { key: 'churned',    label: 'Churned' },
-]
-
-const MX_STATES = [
-  'Aguascalientes', 'Baja California', 'Baja California Sur', 'Campeche',
-  'Chiapas', 'Chihuahua', 'Ciudad de México', 'Coahuila', 'Colima',
-  'Durango', 'Estado de México', 'Guanajuato', 'Guerrero', 'Hidalgo',
-  'Jalisco', 'Michoacán', 'Morelos', 'Nayarit', 'Nuevo León', 'Oaxaca',
-  'Puebla', 'Querétaro', 'Quintana Roo', 'San Luis Potosí', 'Sinaloa',
-  'Sonora', 'Tabasco', 'Tamaulipas', 'Tlaxcala', 'Veracruz', 'Yucatán',
-  'Zacatecas',
-]
-
-const LATAM_COUNTRIES = [
-  { flag: '🇦🇷', name: 'Argentina' },
-  { flag: '🇧🇷', name: 'Brasil' },
-  { flag: '🇨🇱', name: 'Chile' },
-  { flag: '🇨🇴', name: 'Colombia' },
-  { flag: '🇵🇪', name: 'Perú' },
 ]
 
 interface Props {
@@ -85,7 +68,7 @@ export default function SchoolsFilters({ currentStatus, currentState, counts }: 
         onChange={(e) => router.push(buildUrl(currentStatus, e.target.value))}
         className="w-full sm:w-auto sm:min-w-[220px] h-8 px-3 rounded-lg border border-xk-border bg-xk-card text-sm text-xk-text focus:outline-none focus:ring-2 focus:ring-xk-accent/30 focus:border-xk-accent transition-colors"
       >
-        <option value="">Todos los estados</option>
+        <option value="">Todas las regiones</option>
         <optgroup label="🇲🇽 México">
           {MX_STATES.map((s) => (
             <option key={s} value={s}>{s}</option>
