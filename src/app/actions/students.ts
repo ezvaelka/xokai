@@ -12,7 +12,10 @@ export type StudentItem = {
   student_code:   string | null
   group_id:       string | null
   group_name:     string | null
+  group_level:    string | null
   date_of_birth:  string | null
+  curp:           string | null
+  photo_url:      string | null
   active:         boolean
   created_at:     string
 }
@@ -76,10 +79,13 @@ export async function listStudents(filters?: {
       student_code,
       group_id,
       date_of_birth,
+      curp,
+      photo_url,
       active,
       created_at,
       group:groups!students_group_id_fkey (
-        name
+        name,
+        level
       )
     `)
     .eq('school_id', schoolId)
@@ -105,15 +111,20 @@ export async function listStudents(filters?: {
 
   return students.map((s) => {
     const groupRaw = s.group as unknown
-    const group = Array.isArray(groupRaw) ? (groupRaw[0] as { name: string } | undefined) : null
+    const group = Array.isArray(groupRaw)
+      ? (groupRaw[0] as { name: string; level: string | null } | undefined)
+      : null
     return {
       id:            s.id,
       first_name:    s.first_name,
       last_name:     s.last_name,
       student_code:  s.student_code,
       group_id:      s.group_id,
-      group_name:    group?.name ?? null,
+      group_name:    group?.name  ?? null,
+      group_level:   group?.level ?? null,
       date_of_birth: s.date_of_birth,
+      curp:          s.curp       ?? null,
+      photo_url:     s.photo_url  ?? null,
       active:        s.active,
       created_at:    s.created_at,
     }
