@@ -504,6 +504,26 @@ src/app/sysadmin/
 - Los valores almacenados en DB (`city`) son exactamente los `value` del dropdown — el filtro hace match contra `s.state === val || s.city === val`
 - La lista anterior en `SchoolsFilters` tenía ciudades por país (no países) y nombres distintos — causaba que los filtros no matchearan con los valores guardados por el modal
 
+### C11 — ClassifyStatus vs SchoolPlan son conceptos separados
+- **`ClassifyStatus`** (`'active' | 'onboarding' | 'pending' | 'paused'`) es un estado *derivado* — no existe como columna en DB, se calcula del par `(active, onboarding_completed)`
+- **`SchoolPlan`** (`'trial' | 'base' | 'base_pickup' | 'suspended' | 'churned'`) es una columna real en DB
+- Son ortogonales: una escuela puede tener `status=onboarding` y `plan=trial` simultáneamente
+- **Error frecuente**: mezclar ambos en el mismo selector/gráfico. Trial es un plan, NO un estatus — nunca mostrar "Trial" en un gráfico de distribución por estatus
+- Los filtros en `/sysadmin/schools` usan chips separados: Row 1 = estatus, Row 2 = plan + región
+- En `DashboardClient`, el donut de "Escuelas por Estatus" solo usa ClassifyStatus (4 estados: Activas, Onboarding, Por aprobar, Pausadas)
+
+### C12 — Cada shell tiene su propia ruta de perfil
+- El sysadmin usa `/sysadmin/perfil` — no `/dashboard/perfil`
+- Clicking "Mi cuenta" o el avatar en el sysadmin shell siempre debe navegar dentro del sysadmin shell
+- `/sysadmin/perfil/page.tsx` reutiliza `PerfilClient` de `/dashboard/perfil/PerfilClient.tsx` — no hay duplicación de lógica
+- El sysadmin layout ya garantiza el shell correcto para cualquier page bajo `/sysadmin/*`
+
+### C13 — MobileNav con secciones (patrón establecido)
+- `MobileNavSection` se exporta desde `src/components/MobileNav.tsx` e importa en `Topbar.tsx` y `ShellClient.tsx`
+- `ShellClient` computa `mobileSections` haciendo `.map()` sobre `sidebarSections`, convirtiendo `icon: LucideIcon` → `icon: <Item.icon className="w-[18px] h-[18px]" />` (JSX)
+- La conversión es segura porque `ShellClient` es client component — puede renderizar JSX
+- `Topbar` recibe `sections?` y `schoolName?` opcionales — backward compatible con dashboard que solo pasa `items`
+
 ---
 
 ## Learnings técnicos
@@ -550,6 +570,54 @@ En iOS Safari (y a veces Chrome mobile), un elemento con `position: fixed` se cl
 
 **Fix**: renderizar el drawer con `createPortal(jsx, document.body)` — escapa completamente del árbol del DOM y se posiciona relativo al viewport correctamente en todos los navegadores.
 
+### Recharts Tooltip formatter — NO tipar explícitamente
+
+El tipo `Formatter<ValueType, NameType>` de Recharts espera `value: ValueType | undefined`. Si tipas explícitamente `(value: number, name: string)`, TypeScript falla en build:
+```
+Type 'ValueType | undefined' is not assignable to type 'number'
+```
+**Fix**: dejar que TypeScript infiera los tipos:
+```tsx
+// MAL — falla en build
+formatter={(value: number, name: string) => [value, name]}
+
+// BIEN — TypeScript infiere ValueType
+formatter={(value, name) => [value ?? 0, name]}
+```
+
+### LucideIcon no puede cruzar el límite RSC → Client como prop
+
+En Next.js App Router, los server components **no pueden pasar funciones** (incluyendo componentes React como `LucideIcon`) como props a client components. Las funciones no son serializables.
+
+**Síntoma**: el page que usa el server component falla con "Server Error" en producción / `Error: Functions cannot be passed directly to Client Components`.
+
+**Fix**: mover las constantes con iconos (`ALL_NAV`, etc.) directamente al client component que las usa. Nunca importar `LucideIcon` en un server component para pasarlo como prop.
+
+```tsx
+// MAL — en DashboardShell.tsx (server component)
+const items = [{ label: 'Dashboard', icon: LayoutDashboard }]  // función!
+return <DashboardShellClient items={items} />
+
+// BIEN — en DashboardShellClient.tsx (client component)
+const ALL_NAV = [{ label: 'Dashboard', icon: LayoutDashboard }]  // ok aquí
+```
+
+### PostgREST embedded join no confiable con FK nullable + RLS
+
+La sintaxis `select('schools(name, active)')` en una FK nullable falla silenciosamente o con error cuando hay RLS activo y la fila referenciada no es visible para el rol actual.
+
+**Fix**: dos queries separadas:
+```ts
+// MAL
+const { data } = await supabase.from('user_profiles').select('*, schools(name, active)')
+
+// BIEN
+const { data: profile } = await supabase.from('user_profiles').select('school_id, ...')
+if (profile?.school_id) {
+  const { data: school } = await supabase.from('schools').select('name, active').eq('id', profile.school_id).single()
+}
+```
+
 ### Branch divergida al mergear PR
 
 Si GitHub dice `mergeable: false / dirty`, verificar con:
@@ -563,6 +631,21 @@ Si `behind_by > 0`: hacer rebase + force-push, luego reintentar merge (esperar 5
 Después de `git push --force`, el tracking ref local queda desactualizado y el stop-hook reporta "commits sin push". Fix:
 ```bash
 git fetch <PAT_URL> branch:refs/remotes/origin/branch --force
+git branch --set-upstream-to=origin/<branch> <branch>
+```
+
+### Rebase caótico cuando commits anteriores ya están en main
+
+Cuando una rama tiene commits que ya fueron squash-mergeados a main en PRs anteriores, el rebase falla con múltiples conflictos porque git intenta re-aplicar commits que ya existen.
+
+**Síntoma**: `git rebase origin/main` dice "dropping commit — patch contents already upstream" para algunos commits pero luego conflictos en los demás.
+
+**Fix**: no hacer rebase. Hacer reset a main y aplicar solo los cambios nuevos:
+```bash
+git reset --hard origin/main
+# Luego editar los archivos manualmente con los cambios nuevos
+git add <files> && git commit
+git push --force origin <branch>
 ```
 
 ---
@@ -637,6 +720,12 @@ curl -X PUT -H "Authorization: token $PAT" https://api.github.com/repos/ezvaelka
 - NO usar funciones de `schema.sql` en migraciones (ej. `is_sysadmin()`)
 - NO confiar en `position: fixed` dentro de `overflow: hidden` en iOS Safari — usar `createPortal`
 - NO duplicar listas de datos (estados MX, países LATAM) en múltiples archivos — extraer a constante compartida o mantener una fuente canónica
+- NO tipar explícitamente `value` y `name` en Recharts Tooltip `formatter` — dejar que TypeScript infiera para evitar conflicto con `ValueType | undefined`
+- NO pasar `LucideIcon` (componentes React = funciones) como props desde server components a client components — no son serializables
+- NO usar PostgREST embedded join (`select('table(col)')`) con FK nullable que tiene RLS — usar dos queries separadas
+- NO hacer `git rebase` cuando la rama tiene commits que ya fueron squash-mergeados a main — usar `git reset --hard origin/main` + edición manual
+- NO navegar desde el sysadmin shell a `/dashboard/perfil` — usar `/sysadmin/perfil` para mantener el shell correcto
+- NO mezclar ClassifyStatus y SchoolPlan en el mismo selector o gráfico — son conceptos ortogonales
 
 ### Seguridad
 - NO pegar tokens en claude.ai chat — solo en Claude Code
@@ -654,17 +743,20 @@ curl -X PUT -H "Authorization: token $PAT" https://api.github.com/repos/ezvaelka
 
 ---
 
-## Estado actual del proyecto (actualizado 2026-04-18)
+## Estado actual del proyecto (actualizado 2026-04-19)
 
 ### Completo ✓
 - **Auth**: magic link, email/password, invite flow, middleware por rol
 - **Onboarding**: wizard de directora → escuela con `pending` status
-- **Sysadmin**: dashboard de métricas, listado de escuelas con filtros, detalle de escuela, notas internas, plan/trial management, activity log, impersonate director
+- **Sysadmin dashboard** (`/sysadmin`): métricas (MRR, escuelas, alumnos), filtros nombre/región/plan/estatus, selector 3m/6m/12m para chart, donut charts interactivos (Escuelas por Estatus + por Plan), greeting personalizado
+- **Sysadmin escuelas** (`/sysadmin/schools`): listado con columna Región, filtros separados por estatus (chips row 1) y plan (chips row 2) + dropdown región, detalle de escuela, notas internas, plan/trial management, activity log, impersonate director
+- **Sysadmin perfil** (`/sysadmin/perfil`): página de perfil dentro del shell sysadmin (no /dashboard/perfil)
 - **Nueva escuela**: modal inline con 4 campos, trial 30d automático, invite con metadata
 - **Alumnos**: CRUD completo (crear, editar, activar/desactivar)
 - **Comunicados**: CRUD con imagen, link externo y segmentación por grupo/grado/escuela
 - **Design System**: tokens `xk-*`, fuentes, animaciones hover en cards
-- **Mobile Nav**: drawer via portal, slide-in, body scroll lock, safe area iOS
+- **Mobile Nav**: drawer via portal, slide-in, body scroll lock, safe area iOS — secciones PLATAFORMA/CUENTA con items "Pronto", estilos `xk-*`, consistente con desktop
+- **Sidebar sysadmin**: secciones PLATAFORMA/CUENTA, comingSoon con badge "Pronto" y toast, badges de peligro para escuelas pendientes
 
 ### Pendiente 🔲
 - **Pickup / Semáforo**: GPS en tiempo real, tablet de puerta, semáforo 🔴🟡🟢 — **prioridad máxima**
@@ -672,13 +764,14 @@ curl -X PUT -H "Authorization: token $PAT" https://api.github.com/repos/ezvaelka
 - **Calendario escolar**: eventos, menú del día, extracurriculares
 - **Firma electrónica**: contratos desde el celular
 - **App mobile**: iOS (Swift) y Android (Kotlin) — módulo Pickup con GPS
-- **Dashboard admin completo**: métricas propias de la escuela, grupos, maestros
+- **Dashboard admin** (`/dashboard`): métricas propias de la escuela para el rol `admin/director`
 - **Módulo de grupos**: CRUD de grupos y asignación de maestros
 - **Módulo de maestros**: CRUD de maestros
 
 ### Sin problemas conocidos ✓
 - No hay errores TypeScript conocidos
 - No hay bugs reportados en producción actualmente
+- Build de Vercel pasa limpio (PR #46 mergeado)
 
 ---
 
@@ -698,7 +791,40 @@ curl -X PUT -H "Authorization: token $PAT" https://api.github.com/repos/ezvaelka
 | Server actions | `src/app/actions/` |
 | Mobile drawer (portal) | `src/components/MobileNav.tsx` |
 | Modal nueva escuela | `src/app/sysadmin/schools/NewSchoolModal.tsx` |
-| Dropdown Estado/País | `src/app/sysadmin/schools/NewSchoolModal.tsx` (fuente canónica) |
+| Dropdown Estado/País | `src/lib/school-locations.ts` (fuente canónica) |
+| Constantes de plan/estatus | `src/lib/sysadmin-constants.ts` |
+| Filtros /schools | `src/app/sysadmin/schools/SchoolsFilters.tsx` |
+| Perfil sysadmin | `src/app/sysadmin/perfil/page.tsx` |
+| Perfil dashboard | `src/app/dashboard/perfil/page.tsx` + `PerfilClient.tsx` |
+
+---
+
+## Próxima sesión — qué trabajamos mañana (2026-04-20)
+
+El sysadmin está sólido. La siguiente prioridad absoluta es el **módulo de Pickup / Semáforo** — es el dolor #1 de la directora de Hábitat y el módulo que más diferencia a Xokai.
+
+### Orden sugerido de trabajo
+
+1. **Dashboard admin (`/dashboard`)** — antes de Pickup, la directora necesita ver sus propias métricas:
+   - Alumnos activos, grupos, comunicados enviados, pagos pendientes
+   - Cards simples, sin charts por ahora
+   - Esto desbloquea a Hábitat para usar el dashboard propiamente
+
+2. **Módulo de Grupos** (`/dashboard/grupos`) — necesario para Pickup:
+   - CRUD de grupos (nombre, grado, maestro principal)
+   - Asignar alumnos a grupos
+   - Sin grupos no hay pickup por grupo
+
+3. **Pickup / Semáforo** (`/dashboard/pickup`) — **prioridad máxima del producto**:
+   - Vista tablet de portero (pantalla completa, semáforo 🔴🟡🟢)
+   - Vista del padre en app (GPS "estoy en camino / llegando")
+   - Listado de alumnos esperando recogida
+   - Folio de entrega con confirmación
+
+### Notas para la sesión
+- Antes de empezar Pickup, confirmar con Ez si quiere el dashboard admin o ir directo a Pickup
+- El schema de `pickup_eventos` ya existe en `supabase/schema.sql`
+- La app mobile (iOS/Android) para padres puede ser un mock/placeholder — el MVP es la tablet del portero y la web del padre
 
 ---
 
