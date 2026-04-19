@@ -35,41 +35,83 @@ const TOOLTIP_STYLE = {
   borderRadius: 8, fontSize: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.08)',
 }
 
-function DonutChart({ title, data, total }: {
+function DonutChart({ title, data, total, activeFilter, onFilter }: {
   title: string
   data: { name: string; value: number; color: string }[]
   total: number
+  activeFilter?: string | null
+  onFilter?: (name: string) => void
 }) {
+  const sum = data.reduce((a, d) => a + d.value, 0)
   return (
     <div className="xk-surface-elevated p-4 flex flex-col flex-1">
-      <h2 className="text-sm font-semibold text-xk-text mb-3">{title}</h2>
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-sm font-semibold text-xk-text">{title}</h2>
+        {activeFilter && onFilter && (
+          <button
+            onClick={() => onFilter(activeFilter)}
+            className="text-[10px] text-xk-accent hover:text-xk-accent-dark font-medium"
+          >
+            Limpiar filtro
+          </button>
+        )}
+      </div>
       {data.length > 0 ? (
         <>
-          <div className="h-[120px] w-full">
+          <div className="relative h-[140px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={data} cx="50%" cy="50%" innerRadius="50%" outerRadius="78%"
-                  paddingAngle={2} dataKey="value">
-                  {data.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                <Pie
+                  data={data}
+                  cx="50%" cy="50%"
+                  innerRadius="55%" outerRadius="82%"
+                  paddingAngle={2}
+                  dataKey="value"
+                  onClick={(entry) => onFilter?.(entry.name)}
+                  className={onFilter ? 'cursor-pointer outline-none' : ''}
+                >
+                  {data.map((entry, i) => (
+                    <Cell
+                      key={i}
+                      fill={entry.color}
+                      opacity={activeFilter && activeFilter !== entry.name ? 0.35 : 1}
+                      stroke={activeFilter === entry.name ? entry.color : '#fff'}
+                      strokeWidth={activeFilter === entry.name ? 2 : 1}
+                    />
+                  ))}
                 </Pie>
                 <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(value, name) => [value, name]} />
               </PieChart>
             </ResponsiveContainer>
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+              <span className="xk-num text-xl font-bold text-xk-text leading-none">{sum}</span>
+              <span className="text-[9px] text-xk-text-muted mt-0.5 uppercase tracking-wider">total</span>
+            </div>
           </div>
           <div className="space-y-1.5 pt-2 border-t border-xk-border/40 mt-2">
             {data.map(d => {
               const pct = total > 0 ? Math.round((d.value / total) * 100) : 0
+              const isActive = activeFilter === d.name
               return (
-                <div key={d.name} className="flex items-center justify-between text-xs">
+                <button
+                  key={d.name}
+                  type="button"
+                  onClick={() => onFilter?.(d.name)}
+                  className={[
+                    'w-full flex items-center justify-between text-xs transition-all rounded-md px-1.5 py-0.5',
+                    onFilter ? 'cursor-pointer hover:bg-xk-subtle' : 'cursor-default',
+                    isActive ? 'bg-xk-accent-light' : '',
+                  ].join(' ')}
+                >
                   <div className="flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: d.color }} />
-                    <span className="text-xk-text-secondary">{d.name}</span>
+                    <span className={isActive ? 'text-xk-accent-dark font-medium' : 'text-xk-text-secondary'}>{d.name}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="xk-num font-semibold text-xk-text">{d.value}</span>
                     <span className="xk-num w-7 text-right text-xk-text-muted">{pct}%</span>
                   </div>
-                </div>
+                </button>
               )
             })}
           </div>
@@ -97,7 +139,12 @@ export default function DashboardClient({ metrics: m, schools, firstName }: Prop
   const [regionFilter, setRegionFilter] = useState('')
   const [planFilter, setPlanFilter]     = useState('')
   const [chartPeriod, setChartPeriod]   = useState<3 | 6 | 12>(12)
+  const [donutFilter, setDonutFilter]   = useState<string | null>(null)
   const searchDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const handleDonutFilter = (name: string) => {
+    setDonutFilter(prev => prev === name ? null : name)
+  }
 
   const selected = selectedId === 'all' ? null : schools.find(s => s.id === selectedId) ?? null
 
@@ -109,9 +156,15 @@ export default function DashboardClient({ metrics: m, schools, firstName }: Prop
     ), [schools, regionFilter, planFilter])
 
   const visibleSchools = useMemo(() =>
-    filteredSchools.filter(s =>
-      (!search || s.name.toLowerCase().includes(search.toLowerCase()))
-    ), [filteredSchools, search])
+    filteredSchools.filter(s => {
+      if (search && !s.name.toLowerCase().includes(search.toLowerCase())) return false
+      if (!donutFilter) return true
+      const statusMap: Record<string, string> = { 'Activas': 'active', 'Onboarding': 'onboarding', 'Por aprobar': 'pending', 'Pausadas': 'paused' }
+      const planMap: Record<string, string>   = { 'Trial': 'trial', 'Base': 'base', 'Base+Pickup': 'base_pickup', 'Suspendida': 'suspended', 'Churned': 'churned' }
+      if (statusMap[donutFilter]) return s.status === statusMap[donutFilter]
+      if (planMap[donutFilter])   return s.plan   === planMap[donutFilter]
+      return true
+    }), [filteredSchools, search, donutFilter])
 
   const chartData = useMemo(() => m.schoolsByMonth.slice(-chartPeriod), [m.schoolsByMonth, chartPeriod])
 
@@ -320,8 +373,20 @@ export default function DashboardClient({ metrics: m, schools, firstName }: Prop
 
           {/* Right column: two donut charts stacked */}
           <div className="flex flex-col gap-4">
-            <DonutChart title="Escuelas por Estatus" data={estatusData} total={m.totalSchools} />
-            <DonutChart title="Escuelas por Plan"    data={planData}    total={m.totalSchools} />
+            <DonutChart
+              title="Escuelas por Estatus"
+              data={estatusData}
+              total={filteredSchools.length}
+              activeFilter={donutFilter}
+              onFilter={handleDonutFilter}
+            />
+            <DonutChart
+              title="Escuelas por Plan"
+              data={planData}
+              total={filteredSchools.length}
+              activeFilter={donutFilter}
+              onFilter={handleDonutFilter}
+            />
           </div>
         </div>
       )}
