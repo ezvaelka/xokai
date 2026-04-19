@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { Building2, Users, DollarSign, TrendingUp, ArrowRight, ChevronDown, LogIn, Eye } from 'lucide-react'
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis } from 'recharts'
 import { MetricCard } from '@/components/ui/metric-card'
 import { StatusBadge } from '@/components/ui/status-badge'
 import MetricsChart from './MetricsChart'
@@ -200,6 +200,18 @@ export default function DashboardClient({ metrics: m, schools, firstName }: Prop
       }
     }).slice(-chartPeriod)
   }, [filteredSchools, chartPeriod])
+
+  const regionData = useMemo(() => {
+    const counts: Record<string, number> = {}
+    filteredSchools.forEach(s => {
+      const r = s.state ?? s.city ?? 'Sin región'
+      counts[r] = (counts[r] ?? 0) + 1
+    })
+    return Object.entries(counts)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 8)
+  }, [filteredSchools])
 
   // Métricas calculadas desde filteredSchools
   const mrrUsd        = filteredSchools.reduce((sum, s) => sum + (s.mrr_usd ?? 0), 0)
@@ -414,9 +426,42 @@ export default function DashboardClient({ metrics: m, schools, firstName }: Prop
         </div>
         <div className="xk-surface-elevated p-5 flex flex-col">
           <h2 className="text-sm font-semibold text-xk-text mb-4">Por región</h2>
-          <div className="flex-1 flex items-center justify-center text-xs text-xk-text-muted min-h-[200px]">
-            Sin datos aún.
-          </div>
+          {regionData.length > 0 ? (
+            <div className="flex-1 min-h-[200px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  layout="vertical"
+                  data={regionData}
+                  margin={{ top: 0, right: 16, left: 0, bottom: 0 }}
+                >
+                  <XAxis
+                    type="number"
+                    allowDecimals={false}
+                    tick={{ fontSize: 11, fill: '#A8A49E' }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    width={80}
+                    tick={{ fontSize: 11, fill: '#57534E' }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <Tooltip
+                    contentStyle={TOOLTIP_STYLE}
+                    formatter={(value) => [value, 'Escuelas']}
+                  />
+                  <Bar dataKey="value" fill="#6D4AE8" radius={[0, 4, 4, 0]} maxBarSize={20} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="flex-1 flex items-center justify-center text-xs text-xk-text-muted min-h-[200px]">
+              Sin datos aún.
+            </div>
+          )}
         </div>
       </div>
 
