@@ -3,15 +3,22 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { toast } from 'sonner'
 import { LayoutDashboard, Building2, User, ChevronsLeft, ChevronsRight, type LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export type SidebarItem = {
-  label: string
-  href:  string
-  icon:  LucideIcon
-  badge?: string | number
-  badgeTone?: 'accent' | 'danger'
+  label:       string
+  href:        string
+  icon:        LucideIcon
+  badge?:      string | number
+  badgeTone?:  'accent' | 'danger'
+  comingSoon?: boolean
+}
+
+export type SidebarSection = {
+  title?: string
+  items:  SidebarItem[]
 }
 
 export const SYSADMIN_ITEMS: SidebarItem[] = [
@@ -21,14 +28,15 @@ export const SYSADMIN_ITEMS: SidebarItem[] = [
 ]
 
 type Props = {
-  userName:    string
-  userEmail:   string
-  avatarUrl:   string | null
-  initials:    string
-  items?:      SidebarItem[]
+  userName:   string
+  userEmail:  string
+  avatarUrl:  string | null
+  initials:   string
+  items?:     SidebarItem[]
+  sections?:  SidebarSection[]
 }
 
-export default function Sidebar({ userName, userEmail, avatarUrl, initials, items = SYSADMIN_ITEMS }: Props) {
+export default function Sidebar({ userName, userEmail, avatarUrl, initials, items, sections }: Props) {
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState<boolean>(false)
 
@@ -43,7 +51,88 @@ export default function Sidebar({ userName, userEmail, avatarUrl, initials, item
     if (typeof window !== 'undefined') localStorage.setItem('xk-sidebar-collapsed', next ? '1' : '0')
   }
 
+  const resolvedSections: SidebarSection[] = sections
+    ?? (items ? [{ items }] : [{ items: SYSADMIN_ITEMS }])
+
   const width = collapsed ? 'w-[68px]' : 'w-[232px]'
+
+  function renderItem(item: SidebarItem) {
+    const active = !item.comingSoon && (
+      item.href === '/sysadmin'
+        ? pathname === '/sysadmin'
+        : pathname === item.href || pathname.startsWith(`${item.href}/`)
+    )
+    const Icon = item.icon
+
+    const iconCn = cn(
+      'w-[18px] h-[18px] shrink-0',
+      active ? 'text-xk-accent' : 'text-xk-text-muted group-hover:text-xk-text',
+    )
+
+    const commonCn = cn(
+      'group relative flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium transition-all',
+      active
+        ? 'bg-xk-accent-light text-xk-accent-dark'
+        : 'text-xk-text-secondary hover:bg-xk-subtle hover:text-xk-text',
+      collapsed && 'justify-center px-0',
+      item.comingSoon && 'cursor-default',
+    )
+
+    const inner = (
+      <>
+        {active && (
+          <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-r-full bg-xk-accent" />
+        )}
+        <Icon className={iconCn} />
+        {!collapsed && <span className="truncate">{item.label}</span>}
+        {/* Coming soon badge */}
+        {!collapsed && item.comingSoon && (
+          <span className="ml-auto text-[10px] font-medium text-xk-text-muted">
+            Pronto
+          </span>
+        )}
+        {/* Regular badge */}
+        {!collapsed && !item.comingSoon && item.badge !== undefined && (
+          <span className={cn(
+            'ml-auto inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-semibold xk-num',
+            item.badgeTone === 'danger'
+              ? 'bg-red-500 text-white'
+              : 'bg-xk-accent/10 text-xk-accent',
+          )}>
+            {item.badge}
+          </span>
+        )}
+        {collapsed && item.badge !== undefined && item.badgeTone === 'danger' && !item.comingSoon && (
+          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500" />
+        )}
+      </>
+    )
+
+    if (item.comingSoon) {
+      return (
+        <button
+          key={item.label}
+          type="button"
+          title={collapsed ? `${item.label} (próximamente)` : undefined}
+          onClick={() => toast('Próximamente disponible')}
+          className={cn(commonCn, 'w-full text-left')}
+        >
+          {inner}
+        </button>
+      )
+    }
+
+    return (
+      <Link
+        key={item.href}
+        href={item.href}
+        title={collapsed ? item.label : undefined}
+        className={commonCn}
+      >
+        {inner}
+      </Link>
+    )
+  }
 
   return (
     <aside
@@ -69,52 +158,18 @@ export default function Sidebar({ userName, userEmail, avatarUrl, initials, item
 
       {/* Nav */}
       <nav className="flex-1 px-2.5 py-3 overflow-y-auto xk-scroll">
-        {!collapsed && (
-          <p className="text-[10px] font-semibold text-xk-text-muted uppercase tracking-widest px-2.5 mb-1.5">
-            Plataforma
-          </p>
-        )}
-        <div className="space-y-0.5">
-          {items.map((item) => {
-            const active = item.href === '/sysadmin'
-              ? pathname === '/sysadmin'
-              : pathname === item.href || pathname.startsWith(`${item.href}/`)
-            const Icon = item.icon
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                title={collapsed ? item.label : undefined}
-                className={cn(
-                  'group relative flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium transition-all',
-                  active
-                    ? 'bg-xk-accent-light text-xk-accent-dark'
-                    : 'text-xk-text-secondary hover:bg-xk-subtle hover:text-xk-text',
-                  collapsed && 'justify-center px-0',
-                )}
-              >
-                {active && (
-                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-r-full bg-xk-accent" />
-                )}
-                <Icon className={cn('w-[18px] h-[18px] shrink-0', active ? 'text-xk-accent' : 'text-xk-text-muted group-hover:text-xk-text')} />
-                {!collapsed && <span className="truncate">{item.label}</span>}
-                {!collapsed && item.badge !== undefined && (
-                  <span className={cn(
-                    'ml-auto inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-semibold xk-num',
-                    item.badgeTone === 'danger'
-                      ? 'bg-red-500 text-white'
-                      : 'bg-xk-accent/10 text-xk-accent',
-                  )}>
-                    {item.badge}
-                  </span>
-                )}
-                {collapsed && item.badge !== undefined && item.badgeTone === 'danger' && (
-                  <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500" />
-                )}
-              </Link>
-            )
-          })}
-        </div>
+        {resolvedSections.map((section, si) => (
+          <div key={si} className={si > 0 ? 'mt-4' : ''}>
+            {section.title && !collapsed && (
+              <p className="text-[10px] font-semibold text-xk-text-muted uppercase tracking-widest px-2.5 mb-1.5">
+                {section.title}
+              </p>
+            )}
+            <div className="space-y-0.5">
+              {section.items.map(renderItem)}
+            </div>
+          </div>
+        ))}
       </nav>
 
       {/* User chip */}
