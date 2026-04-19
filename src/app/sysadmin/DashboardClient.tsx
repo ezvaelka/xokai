@@ -168,7 +168,22 @@ export default function DashboardClient({ metrics: m, schools, firstName }: Prop
       return true
     }), [filteredSchools, search, donutFilter])
 
-  const chartData = useMemo(() => m.schoolsByMonth.slice(-chartPeriod), [m.schoolsByMonth, chartPeriod])
+  const filteredSchoolsByMonth = useMemo(() => {
+    const now = new Date()
+    const months = Array.from({ length: 12 }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - (11 - i), 1)
+      return {
+        month:  d.toLocaleDateString('es-MX', { month: 'short', year: '2-digit' }),
+        isoKey: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
+      }
+    })
+    const counts: Record<string, number> = {}
+    filteredSchools.forEach(s => {
+      const k = s.created_at.slice(0, 7)
+      counts[k] = (counts[k] ?? 0) + 1
+    })
+    return months.map(mo => ({ month: mo.month, count: counts[mo.isoKey] ?? 0 })).slice(-chartPeriod)
+  }, [filteredSchools, chartPeriod])
 
   // Métricas calculadas desde filteredSchools
   const mrrUsd        = filteredSchools.reduce((sum, s) => sum + (s.mrr_usd ?? 0), 0)
@@ -353,7 +368,7 @@ export default function DashboardClient({ metrics: m, schools, firstName }: Prop
               </div>
             </div>
             <div className="flex-1 min-h-[240px] w-full">
-              <MetricsChart data={chartData} />
+              <MetricsChart data={filteredSchoolsByMonth} />
             </div>
           </div>
 
