@@ -67,7 +67,7 @@ function DonutChart({ title, data, total, activeFilter, onFilter }: {
                   innerRadius="55%" outerRadius="82%"
                   paddingAngle={2}
                   dataKey="value"
-                  onClick={(entry) => onFilter?.(entry.name)}
+                  onClick={(entry) => { if (entry?.name) onFilter?.(entry.name) }}
                   className={onFilter ? 'cursor-pointer outline-none' : ''}
                 >
                   {data.map((entry, i) => (
