@@ -138,6 +138,14 @@ export default function DashboardClient({ metrics: m, schools, firstName }: Prop
   const [chartPeriod, setChartPeriod]   = useState<3 | 6 | 12>(12)
   const [donutFilter, setDonutFilter]   = useState<string | null>(null)
 
+  const anyFilterActive = !!statusFilter || !!regionFilter || !!planFilter
+
+  function clearFilters() {
+    setStatusFilter('')
+    setRegionFilter('')
+    setPlanFilter('')
+  }
+
   const handleDonutFilter = (name: string) => {
     setDonutFilter(prev => prev === name ? null : name)
   }
@@ -186,18 +194,21 @@ export default function DashboardClient({ metrics: m, schools, firstName }: Prop
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
+      <div className="flex flex-col gap-3">
         <h1 className="text-[clamp(20px,2.2vw,28px)] font-semibold tracking-tight text-xk-text">
           {greeting()}, {firstName} <span className="inline-block">👋</span>
         </h1>
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="relative">
+        {/* Filters — single scroll row on mobile */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-0.5 -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap">
+          <div className="relative shrink-0">
             <select
               value={regionFilter}
               onChange={e => setRegionFilter(e.target.value)}
-              className="appearance-none h-9 pl-3 pr-8 rounded-lg border border-xk-border bg-xk-surface text-xs text-xk-text cursor-pointer hover:border-xk-border-strong focus:outline-none focus:ring-2 focus:ring-xk-accent/20 focus:border-xk-accent transition-colors min-w-[160px]"
+              className={['appearance-none h-8 pl-3 pr-7 rounded-lg border bg-xk-surface text-xs cursor-pointer focus:outline-none focus:ring-2 focus:ring-xk-accent/20 transition-colors',
+                regionFilter ? 'border-xk-accent text-xk-accent font-medium' : 'border-xk-border text-xk-text hover:border-xk-border-strong',
+              ].join(' ')}
             >
-              <option value="">Todas las regiones</option>
+              <option value="">Región</option>
               <optgroup label="🇲🇽 México">
                 {MX_STATES.map(s => <option key={s} value={s}>{s}</option>)}
               </optgroup>
@@ -205,40 +216,52 @@ export default function DashboardClient({ metrics: m, schools, firstName }: Prop
                 {LATAM_COUNTRIES.map(c => <option key={c.name} value={c.name}>{c.flag} {c.name}</option>)}
               </optgroup>
             </select>
-            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-xk-text-muted pointer-events-none" />
+            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-xk-text-muted pointer-events-none" />
           </div>
-          <div className="relative">
+          <div className="relative shrink-0">
             <select
               value={statusFilter}
               onChange={e => setStatusFilter(e.target.value)}
-              className="appearance-none h-9 pl-3 pr-8 rounded-lg border border-xk-border bg-xk-surface text-xs text-xk-text cursor-pointer hover:border-xk-border-strong focus:outline-none focus:ring-2 focus:ring-xk-accent/20 focus:border-xk-accent transition-colors min-w-[140px]"
+              className={['appearance-none h-8 pl-3 pr-7 rounded-lg border bg-xk-surface text-xs cursor-pointer focus:outline-none focus:ring-2 focus:ring-xk-accent/20 transition-colors',
+                statusFilter ? 'border-xk-accent text-xk-accent font-medium' : 'border-xk-border text-xk-text hover:border-xk-border-strong',
+              ].join(' ')}
             >
-              <option value="">Todos los estatus</option>
+              <option value="">Estatus</option>
               <option value="active">Activas</option>
               <option value="pending">Por aprobar</option>
               <option value="onboarding">Onboarding</option>
               <option value="paused">Pausadas</option>
             </select>
-            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-xk-text-muted pointer-events-none" />
+            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-xk-text-muted pointer-events-none" />
           </div>
-          <div className="relative">
+          <div className="relative shrink-0">
             <select
               value={planFilter}
               onChange={e => setPlanFilter(e.target.value)}
-              className="appearance-none h-9 pl-3 pr-8 rounded-lg border border-xk-border bg-xk-surface text-xs text-xk-text cursor-pointer hover:border-xk-border-strong focus:outline-none focus:ring-2 focus:ring-xk-accent/20 focus:border-xk-accent transition-colors min-w-[140px]"
+              className={['appearance-none h-8 pl-3 pr-7 rounded-lg border bg-xk-surface text-xs cursor-pointer focus:outline-none focus:ring-2 focus:ring-xk-accent/20 transition-colors',
+                planFilter ? 'border-xk-accent text-xk-accent font-medium' : 'border-xk-border text-xk-text hover:border-xk-border-strong',
+              ].join(' ')}
             >
-              <option value="">Todos los planes</option>
+              <option value="">Plan</option>
               <option value="trial">Trial</option>
               <option value="base">Base</option>
               <option value="base_pickup">Base+Pickup</option>
               <option value="suspended">Suspendida</option>
               <option value="churned">Churned</option>
             </select>
-            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-xk-text-muted pointer-events-none" />
+            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-xk-text-muted pointer-events-none" />
           </div>
+          {anyFilterActive && (
+            <button
+              onClick={clearFilters}
+              className="shrink-0 h-8 px-3 rounded-lg border border-xk-border text-xs text-xk-text-secondary hover:bg-xk-subtle hover:text-xk-text transition-colors"
+            >
+              × Limpiar
+            </button>
+          )}
           <Link
             href="/sysadmin/schools/new"
-            className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-xk-accent text-white text-xs font-medium hover:bg-xk-accent-dark transition-colors shadow-sm whitespace-nowrap"
+            className="shrink-0 inline-flex items-center gap-1.5 h-8 px-3.5 rounded-lg bg-xk-accent text-white text-xs font-medium hover:bg-xk-accent-dark transition-colors shadow-sm whitespace-nowrap"
           >
             + Nueva escuela
           </Link>
