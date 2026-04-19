@@ -98,7 +98,7 @@ export default function SchoolsTable({ schools }: { schools: SchoolListItem[] })
                 <SortHeader label="Plan" sortKey="plan" current={sort} onSort={toggleSort} />
               </th>
               <th className="text-left px-4 py-3">
-                <SortHeader label="Estado" sortKey="status" current={sort} onSort={toggleSort} />
+                <SortHeader label="Estatus" sortKey="status" current={sort} onSort={toggleSort} />
               </th>
               <th className="text-right px-4 py-3">
                 <SortHeader label="Alumnos" sortKey="students" current={sort} onSort={toggleSort} />
