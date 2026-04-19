@@ -30,13 +30,6 @@ const STATUS_TONE = {
   pending:    { tone: 'danger'  as const, label: 'Por aprobar' },
 }
 
-const ESTATUS_DATA = (m: SysadminMetrics) => [
-  { name: 'Activas',     value: m.activeSchools,     color: '#059669' },
-  { name: 'Onboarding',  value: m.onboardingSchools, color: '#D97706' },
-  { name: 'Por aprobar', value: m.pendingSchools,     color: '#DC2626' },
-  { name: 'Pausadas',    value: m.pausedSchools,      color: '#A8A49E' },
-].filter(d => d.value > 0)
-
 const TOOLTIP_STYLE = {
   background: '#fff', border: '1px solid #ECEAE3',
   borderRadius: 8, fontSize: 12, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.08)',
@@ -108,20 +101,32 @@ export default function DashboardClient({ metrics: m, schools, firstName }: Prop
 
   const selected = selectedId === 'all' ? null : schools.find(s => s.id === selectedId) ?? null
 
-  const visibleSchools = useMemo(() =>
+  // Schools filtered by header filters (región + plan) — afectan TODAS las métricas
+  const filteredSchools = useMemo(() =>
     schools.filter(s =>
-      (!search       || s.name.toLowerCase().includes(search.toLowerCase())) &&
       (!regionFilter || s.state === regionFilter || s.city === regionFilter) &&
       (!planFilter   || s.plan === planFilter)
-    ), [schools, search, regionFilter, planFilter])
+    ), [schools, regionFilter, planFilter])
+
+  const visibleSchools = useMemo(() =>
+    filteredSchools.filter(s =>
+      (!search || s.name.toLowerCase().includes(search.toLowerCase()))
+    ), [filteredSchools, search])
 
   const chartData = useMemo(() => m.schoolsByMonth.slice(-chartPeriod), [m.schoolsByMonth, chartPeriod])
 
-  const mrrUsd        = selectedId === 'all' ? m.mrrUsd : (selected?.mrr_usd ?? 0)
-  const totalStudents = selectedId === 'all' ? m.totalStudents : (selected?.student_count ?? 0)
-  const activeSchools = selectedId === 'all' ? m.activeSchools : (selected?.status === 'active' ? 1 : 0)
+  // Métricas calculadas desde filteredSchools
+  const mrrUsd        = selectedId === 'all'
+    ? filteredSchools.reduce((sum, s) => sum + (s.mrr_usd ?? 0), 0)
+    : (selected?.mrr_usd ?? 0)
+  const totalStudents = selectedId === 'all'
+    ? filteredSchools.reduce((sum, s) => sum + (s.student_count ?? 0), 0)
+    : (selected?.student_count ?? 0)
+  const activeSchools = selectedId === 'all'
+    ? filteredSchools.filter(s => s.status === 'active').length
+    : (selected?.status === 'active' ? 1 : 0)
   const utilizacion   = selectedId === 'all'
-    ? (m.totalSchools > 0 ? Math.round((m.activeSchools / m.totalSchools) * 100) : 0)
+    ? (filteredSchools.length > 0 ? Math.round((activeSchools / filteredSchools.length) * 100) : 0)
     : (selected?.status === 'active' ? 100 : 0)
 
   function handleSearch(v: string) {
@@ -129,14 +134,21 @@ export default function DashboardClient({ metrics: m, schools, firstName }: Prop
     searchDebounce.current = setTimeout(() => setSearch(v), 300)
   }
 
-  const estatusData = useMemo(() => ESTATUS_DATA(m), [m])
-  const planData    = useMemo(() => [
-    { name: 'Trial',        value: schools.filter(s => s.plan === 'trial').length,       color: '#6D4AE8' },
-    { name: 'Base',         value: schools.filter(s => s.plan === 'base').length,        color: '#059669' },
-    { name: 'Base+Pickup',  value: schools.filter(s => s.plan === 'base_pickup').length, color: '#0EA5E9' },
-    { name: 'Suspendida',   value: schools.filter(s => s.plan === 'suspended').length,   color: '#D97706' },
-    { name: 'Churned',      value: schools.filter(s => s.plan === 'churned').length,     color: '#A8A49E' },
-  ].filter(d => d.value > 0), [schools])
+  const estatusData = useMemo(() => [
+    { name: 'Activas',     value: filteredSchools.filter(s => s.status === 'active' && s.plan !== 'trial').length, color: '#059669' },
+    { name: 'Trial',       value: filteredSchools.filter(s => s.plan === 'trial').length,                           color: '#6D4AE8' },
+    { name: 'Onboarding',  value: filteredSchools.filter(s => s.status === 'onboarding').length,                    color: '#D97706' },
+    { name: 'Por aprobar', value: filteredSchools.filter(s => s.status === 'pending').length,                       color: '#DC2626' },
+    { name: 'Pausadas',    value: filteredSchools.filter(s => s.status === 'paused').length,                        color: '#A8A49E' },
+  ].filter(d => d.value > 0), [filteredSchools])
+
+  const planData = useMemo(() => [
+    { name: 'Trial',        value: filteredSchools.filter(s => s.plan === 'trial').length,       color: '#6D4AE8' },
+    { name: 'Base',         value: filteredSchools.filter(s => s.plan === 'base').length,        color: '#059669' },
+    { name: 'Base+Pickup',  value: filteredSchools.filter(s => s.plan === 'base_pickup').length, color: '#0EA5E9' },
+    { name: 'Suspendida',   value: filteredSchools.filter(s => s.plan === 'suspended').length,   color: '#D97706' },
+    { name: 'Churned',      value: filteredSchools.filter(s => s.plan === 'churned').length,     color: '#A8A49E' },
+  ].filter(d => d.value > 0), [filteredSchools])
 
   return (
     <div className="space-y-8">
