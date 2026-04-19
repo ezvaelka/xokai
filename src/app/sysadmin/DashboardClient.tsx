@@ -134,6 +134,7 @@ function fmtUsd(n: number) {
 export default function DashboardClient({ metrics: m, schools, firstName }: Props) {
   const [selectedId, setSelectedId]     = useState<string | 'all'>('all')
   const [search, setSearch]             = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
   const [regionFilter, setRegionFilter] = useState('')
   const [planFilter, setPlanFilter]     = useState('')
   const [chartPeriod, setChartPeriod]   = useState<3 | 6 | 12>(12)
@@ -149,9 +150,10 @@ export default function DashboardClient({ metrics: m, schools, firstName }: Prop
   // Schools filtered by header filters (región + plan) — afectan TODAS las métricas
   const filteredSchools = useMemo(() =>
     schools.filter(s =>
+      (!statusFilter || s.status === statusFilter) &&
       (!regionFilter || s.state === regionFilter || s.city === regionFilter) &&
       (!planFilter   || s.plan === planFilter)
-    ), [schools, regionFilter, planFilter])
+    ), [schools, statusFilter, regionFilter, planFilter])
 
   const visibleSchools = useMemo(() =>
     filteredSchools.filter(s => {
@@ -232,6 +234,20 @@ export default function DashboardClient({ metrics: m, schools, firstName }: Prop
               <optgroup label="América Latina">
                 {LATAM_COUNTRIES.map(c => <option key={c.name} value={c.name}>{c.flag} {c.name}</option>)}
               </optgroup>
+            </select>
+            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-xk-text-muted pointer-events-none" />
+          </div>
+          <div className="relative">
+            <select
+              value={statusFilter}
+              onChange={e => setStatusFilter(e.target.value)}
+              className="appearance-none h-9 pl-3 pr-8 rounded-lg border border-xk-border bg-xk-surface text-xs text-xk-text cursor-pointer hover:border-xk-border-strong focus:outline-none focus:ring-2 focus:ring-xk-accent/20 focus:border-xk-accent transition-colors min-w-[140px]"
+            >
+              <option value="">Todos los estatus</option>
+              <option value="active">Activas</option>
+              <option value="pending">Por aprobar</option>
+              <option value="onboarding">Onboarding</option>
+              <option value="paused">Pausadas</option>
             </select>
             <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-xk-text-muted pointer-events-none" />
           </div>
