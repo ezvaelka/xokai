@@ -7,6 +7,7 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 import { MetricCard } from '@/components/ui/metric-card'
 import { StatusBadge } from '@/components/ui/status-badge'
 import MetricsChart from './MetricsChart'
+import MrrChart from './MrrChart'
 import { MX_STATES, LATAM_COUNTRIES } from '@/lib/school-locations'
 import type { SysadminMetrics, SchoolListItem } from '@/app/actions/sysadmin'
 
@@ -185,6 +186,21 @@ export default function DashboardClient({ metrics: m, schools, firstName }: Prop
     return months.map(mo => ({ month: mo.month, count: counts[mo.isoKey] ?? 0 })).slice(-chartPeriod)
   }, [filteredSchools, chartPeriod])
 
+  const mrrByMonth = useMemo(() => {
+    const now = new Date()
+    return Array.from({ length: 12 }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - (11 - i), 1)
+      const isoKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+      const label  = d.toLocaleDateString('es-MX', { month: 'short', year: '2-digit' })
+      const active = filteredSchools.filter(s => s.created_at.slice(0, 7) <= isoKey)
+      return {
+        month:       label,
+        base:        active.filter(s => s.plan === 'base').reduce((sum, s) => sum + (s.mrr_usd ?? 0), 0),
+        base_pickup: active.filter(s => s.plan === 'base_pickup').reduce((sum, s) => sum + (s.mrr_usd ?? 0), 0),
+      }
+    }).slice(-chartPeriod)
+  }, [filteredSchools, chartPeriod])
+
   // Métricas calculadas desde filteredSchools
   const mrrUsd        = filteredSchools.reduce((sum, s) => sum + (s.mrr_usd ?? 0), 0)
   const totalStudents = filteredSchools.reduce((sum, s) => sum + (s.student_count ?? 0), 0)
@@ -335,61 +351,74 @@ export default function DashboardClient({ metrics: m, schools, firstName }: Prop
         />
       </div>
 
-      {/* Charts */}
-      <div className="grid lg:grid-cols-3 gap-4 items-stretch">
-          {/* Nuevas escuelas — 2/3 width */}
-          <div className="lg:col-span-2 xk-surface-elevated p-5 flex flex-col">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h2 className="text-sm font-semibold text-xk-text">Nuevas escuelas</h2>
-                <p className="text-xs text-xk-text-muted mt-0.5">
-                  {chartPeriod === 12 ? 'Últimos 12 meses' : chartPeriod === 6 ? 'Últimos 6 meses' : 'Últimos 3 meses'}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="xk-num text-2xl font-semibold text-xk-text">{m.totalSchools}</span>
-                {/* Period selector */}
-                <div className="flex rounded-lg border border-xk-border overflow-hidden text-[11px] font-medium">
-                  {([3, 6, 12] as const).map(p => (
-                    <button
-                      key={p}
-                      onClick={() => setChartPeriod(p)}
-                      className={[
-                        'px-2.5 py-1 transition-colors',
-                        chartPeriod === p
-                          ? 'bg-xk-accent text-white'
-                          : 'text-xk-text-muted hover:bg-xk-subtle',
-                      ].join(' ')}
-                    >
-                      {p}m
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-            <div className="flex-1 min-h-[240px] w-full">
-              <MetricsChart data={filteredSchoolsByMonth} />
-            </div>
-          </div>
+      {/* Donut charts */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <DonutChart
+          title="Escuelas por Estatus"
+          data={estatusData}
+          total={filteredSchools.length}
+          activeFilter={donutFilter}
+          onFilter={handleDonutFilter}
+        />
+        <DonutChart
+          title="Escuelas por Plan"
+          data={planData}
+          total={filteredSchools.length}
+          activeFilter={donutFilter}
+          onFilter={handleDonutFilter}
+        />
+      </div>
 
-          {/* Right column: two donut charts stacked */}
-          <div className="flex flex-col gap-4">
-            <DonutChart
-              title="Escuelas por Estatus"
-              data={estatusData}
-              total={filteredSchools.length}
-              activeFilter={donutFilter}
-              onFilter={handleDonutFilter}
-            />
-            <DonutChart
-              title="Escuelas por Plan"
-              data={planData}
-              total={filteredSchools.length}
-              activeFilter={donutFilter}
-              onFilter={handleDonutFilter}
-            />
+      {/* MRR Timeline — full width */}
+      <div className="xk-surface-elevated p-5">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-sm font-semibold text-xk-text">MRR por Plan</h2>
+            <p className="text-xs text-xk-text-muted mt-0.5">Crecimiento acumulado</p>
+          </div>
+          <div className="flex rounded-lg border border-xk-border overflow-hidden text-[11px] font-medium">
+            {([3, 6, 12] as const).map(p => (
+              <button
+                key={p}
+                onClick={() => setChartPeriod(p)}
+                className={[
+                  'px-2.5 py-1 transition-colors',
+                  chartPeriod === p ? 'bg-xk-accent text-white' : 'text-xk-text-muted hover:bg-xk-subtle',
+                ].join(' ')}
+              >
+                {p}m
+              </button>
+            ))}
           </div>
         </div>
+        <div className="h-[200px] w-full">
+          <MrrChart data={mrrByMonth} />
+        </div>
+      </div>
+
+      {/* Nuevas escuelas (2/3) + Región (1/3) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch">
+        <div className="lg:col-span-2 xk-surface-elevated p-5 flex flex-col">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-sm font-semibold text-xk-text">Nuevas escuelas</h2>
+              <p className="text-xs text-xk-text-muted mt-0.5">
+                {chartPeriod === 12 ? 'Últimos 12 meses' : chartPeriod === 6 ? 'Últimos 6 meses' : 'Últimos 3 meses'}
+              </p>
+            </div>
+            <span className="xk-num text-2xl font-semibold text-xk-text">{m.totalSchools}</span>
+          </div>
+          <div className="flex-1 min-h-[200px] w-full">
+            <MetricsChart data={filteredSchoolsByMonth} />
+          </div>
+        </div>
+        <div className="xk-surface-elevated p-5 flex flex-col">
+          <h2 className="text-sm font-semibold text-xk-text mb-4">Por región</h2>
+          <div className="flex-1 flex items-center justify-center text-xs text-xk-text-muted min-h-[200px]">
+            Sin datos aún.
+          </div>
+        </div>
+      </div>
 
       {/* Últimas escuelas */}
       <div className="xk-surface-elevated overflow-hidden w-full">
