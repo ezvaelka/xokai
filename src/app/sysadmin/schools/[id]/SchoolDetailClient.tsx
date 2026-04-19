@@ -36,6 +36,10 @@ function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
+function fmtUsd(n: number) {
+  return n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
+}
+
 function Row({ label, value }: { label: string; value: string | number | null | undefined }) {
   return (
     <div className="flex items-start justify-between gap-4 py-2.5 border-b border-xk-border/40 last:border-0">
@@ -85,8 +89,14 @@ export default function SchoolDetailClient({ detail, notes, activityLog, plan, t
               <p className="text-xs text-xk-text-muted mt-0.5">{school.city ?? '—'} · ID: {school.id.slice(0, 8)}…</p>
             </div>
           </div>
-          <div className="flex items-center gap-6">
-            {([['Alumnos', studentCount], ['Grupos', groupCount], ['Usuarios', users.length]] as const).map(([l, v]) => (
+          <div className="flex items-center gap-6 flex-wrap">
+            {([
+              ['Alumnos',  `${studentCount}`],
+              ['Grupos',   `${groupCount}`],
+              ['Usuarios', `${users.length}`],
+              ['MRR',      fmtUsd(detail.mrr_usd)],
+              ['ARR est.', fmtUsd(detail.mrr_usd * 12)],
+            ] as [string, string][]).map(([l, v]) => (
               <div key={l} className="text-center">
                 <p className="xk-num text-xl font-semibold text-xk-text">{v}</p>
                 <p className="text-[10px] text-xk-text-muted uppercase tracking-wide">{l}</p>
