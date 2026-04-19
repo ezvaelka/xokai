@@ -137,7 +137,8 @@ export default function DashboardClient({ metrics: m, schools, firstName }: Prop
   const [statusFilter, setStatusFilter] = useState('')
   const [regionFilter, setRegionFilter] = useState('')
   const [planFilter, setPlanFilter]     = useState('')
-  const [chartPeriod, setChartPeriod]   = useState<3 | 6 | 12>(12)
+  const [mrrPeriod, setMrrPeriod]         = useState<3 | 6 | 12>(12)
+  const [schoolsPeriod, setSchoolsPeriod] = useState<3 | 6 | 12>(6)
   const [donutFilter, setDonutFilter]   = useState<string | null>(null)
 
   const anyFilterActive = !!schoolFilter || !!statusFilter || !!regionFilter || !!planFilter
@@ -186,8 +187,8 @@ export default function DashboardClient({ metrics: m, schools, firstName }: Prop
       const k = s.created_at.slice(0, 7)
       counts[k] = (counts[k] ?? 0) + 1
     })
-    return months.map(mo => ({ month: mo.month, count: counts[mo.isoKey] ?? 0 })).slice(-chartPeriod)
-  }, [filteredSchools, chartPeriod])
+    return months.map(mo => ({ month: mo.month, count: counts[mo.isoKey] ?? 0 })).slice(-schoolsPeriod)
+  }, [filteredSchools, schoolsPeriod])
 
   const mrrByMonth = useMemo(() => {
     const now = new Date()
@@ -201,8 +202,8 @@ export default function DashboardClient({ metrics: m, schools, firstName }: Prop
         base:        active.filter(s => s.plan === 'base').reduce((sum, s) => sum + (s.mrr_usd ?? 0), 0),
         base_pickup: active.filter(s => s.plan === 'base_pickup').reduce((sum, s) => sum + (s.mrr_usd ?? 0), 0),
       }
-    }).slice(-chartPeriod)
-  }, [filteredSchools, chartPeriod])
+    }).slice(-mrrPeriod)
+  }, [filteredSchools, mrrPeriod])
 
   const regionData = useMemo(() => {
     const counts: Record<string, number> = {}
@@ -426,10 +427,10 @@ export default function DashboardClient({ metrics: m, schools, firstName }: Prop
             {([3, 6, 12] as const).map(p => (
               <button
                 key={p}
-                onClick={() => setChartPeriod(p)}
+                onClick={() => setMrrPeriod(p)}
                 className={[
                   'px-2.5 py-1 transition-colors',
-                  chartPeriod === p ? 'bg-xk-accent text-white' : 'text-xk-text-muted hover:bg-xk-subtle',
+                  mrrPeriod === p ? 'bg-xk-accent text-white' : 'text-xk-text-muted hover:bg-xk-subtle',
                 ].join(' ')}
               >
                 {p}m
@@ -449,10 +450,26 @@ export default function DashboardClient({ metrics: m, schools, firstName }: Prop
             <div>
               <h2 className="text-sm font-semibold text-xk-text">Nuevas escuelas</h2>
               <p className="text-xs text-xk-text-muted mt-0.5">
-                {chartPeriod === 12 ? 'Últimos 12 meses' : chartPeriod === 6 ? 'Últimos 6 meses' : 'Últimos 3 meses'}
+                {schoolsPeriod === 12 ? 'Últimos 12 meses' : schoolsPeriod === 6 ? 'Últimos 6 meses' : 'Últimos 3 meses'}
               </p>
             </div>
-            <span className="xk-num text-2xl font-semibold text-xk-text">{m.totalSchools}</span>
+            <div className="flex items-center gap-3">
+              <div className="flex rounded-lg border border-xk-border overflow-hidden text-[11px] font-medium">
+                {([3, 6, 12] as const).map(p => (
+                  <button
+                    key={p}
+                    onClick={() => setSchoolsPeriod(p)}
+                    className={[
+                      'px-2.5 py-1 transition-colors',
+                      schoolsPeriod === p ? 'bg-xk-accent text-white' : 'text-xk-text-muted hover:bg-xk-subtle',
+                    ].join(' ')}
+                  >
+                    {p}m
+                  </button>
+                ))}
+              </div>
+              <span className="xk-num text-2xl font-semibold text-xk-text">{m.totalSchools}</span>
+            </div>
           </div>
           <div className="flex-1 min-h-[200px] w-full">
             <MetricsChart data={filteredSchoolsByMonth} />
