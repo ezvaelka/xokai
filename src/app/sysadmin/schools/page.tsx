@@ -1,16 +1,22 @@
-import { Suspense }                       from 'react'
-import Link                               from 'next/link'
-import { Search }                         from 'lucide-react'
-import { listSchools, type SchoolStatus } from '@/app/actions/sysadmin'
-import SchoolsFilters                     from './SchoolsFilters'
-import SchoolsTable                       from './SchoolsTable'
-import NewSchoolModal                     from './NewSchoolModal'
+import { Suspense }                          from 'react'
+import Link                                  from 'next/link'
+import { Search }                            from 'lucide-react'
+import { listSchools, type ClassifyStatus }  from '@/app/actions/sysadmin'
+import type { SchoolPlan }                   from '@/lib/sysadmin-constants'
+import SchoolsFilters                        from './SchoolsFilters'
+import SchoolsTable                          from './SchoolsTable'
+import NewSchoolModal                        from './NewSchoolModal'
 
-function parseStatus(value: string | string[] | undefined): SchoolStatus {
+function parseStatus(value: string | string[] | undefined): ClassifyStatus | 'all' {
   const v = Array.isArray(value) ? value[0] : value
-  if (v === 'active' || v === 'onboarding' || v === 'paused' || v === 'pending'
-    || v === 'trial' || v === 'churned') return v
+  if (v === 'active' || v === 'onboarding' || v === 'paused' || v === 'pending') return v
   return 'all'
+}
+
+function parsePlan(value: string | string[] | undefined): SchoolPlan | '' {
+  const v = Array.isArray(value) ? value[0] : value
+  if (v === 'trial' || v === 'base' || v === 'base_pickup' || v === 'suspended' || v === 'churned') return v
+  return ''
 }
 
 function parseState(value: string | string[] | undefined): string {
@@ -21,37 +27,40 @@ function parseState(value: string | string[] | undefined): string {
 export default async function SysadminSchoolsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; state?: string }>
+  searchParams: Promise<{ status?: string; state?: string; plan?: string }>
 }) {
   const params       = await searchParams
   const status       = parseStatus(params.status)
+  const currentPlan  = parsePlan(params.plan)
   const currentState = parseState(params.state)
   const all          = await listSchools('all')
 
   const schools = all.filter((s) => {
-    const matchStatus =
-      status === 'all'     ? true :
-      status === 'trial'   ? s.plan === 'trial' :
-      status === 'churned' ? s.plan === 'churned' :
-      s.status === status
-    const matchLocation = !currentState
-      || s.state === currentState
-      || s.city  === currentState
-    return matchStatus && matchLocation
+    const matchStatus   = status === 'all' ? true : s.status === status
+    const matchPlan     = !currentPlan ? true : s.plan === currentPlan
+    const matchLocation = !currentState || s.state === currentState || s.city === currentState
+    return matchStatus && matchPlan && matchLocation
   })
 
-  const counts: Record<SchoolStatus, number> = {
+  const statusCounts: Partial<Record<ClassifyStatus | 'all', number>> = {
     all:        all.length,
     active:     all.filter((s) => s.status === 'active').length,
-    trial:      all.filter((s) => s.plan   === 'trial').length,
     pending:    all.filter((s) => s.status === 'pending').length,
     onboarding: all.filter((s) => s.status === 'onboarding').length,
     paused:     all.filter((s) => s.status === 'paused').length,
-    churned:    all.filter((s) => s.plan   === 'churned').length,
+  }
+
+  const planCounts: Partial<Record<SchoolPlan | '', number>> = {
+    '':           all.length,
+    trial:        all.filter((s) => s.plan === 'trial').length,
+    base:         all.filter((s) => s.plan === 'base').length,
+    base_pickup:  all.filter((s) => s.plan === 'base_pickup').length,
+    suspended:    all.filter((s) => s.plan === 'suspended').length,
+    churned:      all.filter((s) => s.plan === 'churned').length,
   }
 
   const totalMrr = all.reduce((sum, s) => sum + (s.mrr_usd ?? 0), 0)
-  const hasFilters = status !== 'all' || currentState !== ''
+  const hasFilters = status !== 'all' || currentState !== '' || currentPlan !== ''
 
   return (
     <div className="space-y-6">
@@ -72,7 +81,9 @@ export default async function SysadminSchoolsPage({
         <SchoolsFilters
           currentStatus={status}
           currentState={currentState}
-          counts={counts}
+          currentPlan={currentPlan}
+          statusCounts={statusCounts}
+          planCounts={planCounts}
         />
       </Suspense>
 
